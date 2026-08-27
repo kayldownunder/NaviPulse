@@ -39,7 +39,6 @@ class TrackingService : Service() {
 
     private var timerJob: Job? = null
     private var startTime = 0L
-    private var pendingIsBusiness = true
 
     companion object {
         private const val CHANNEL_ID = "tracking_channel"
@@ -109,11 +108,9 @@ class TrackingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             "ACTION_START" -> {
-                pendingIsBusiness = intent.getBooleanExtra("EXTRA_IS_BUSINESS", true)
                 startTracking()
             }
             "ACTION_STOP" -> {
-                pendingIsBusiness = intent.getBooleanExtra("EXTRA_IS_BUSINESS", pendingIsBusiness)
                 stopTrackingAndSave()
             }
         }
@@ -170,7 +167,6 @@ class TrackingService : Service() {
         val tripStartTime = startTime
         val tripDistanceKm = totalDistanceKm.value
         val tripDurationMs = elapsedTimeMs.value
-        val tripIsBusiness = pendingIsBusiness
 
         stopForeground(STOP_FOREGROUND_REMOVE)
 
@@ -186,8 +182,7 @@ class TrackingService : Service() {
                 distanceKm = tripDistanceKm,
                 durationMs = tripDurationMs,
                 startAddress = startAddress,
-                endAddress = endAddress,
-                isBusiness = tripIsBusiness
+                endAddress = endAddress
             )
             db.tripDao().insertTrip(trip)
 

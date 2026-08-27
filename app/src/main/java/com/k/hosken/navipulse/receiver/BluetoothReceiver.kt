@@ -24,15 +24,22 @@ class BluetoothReceiver : BroadcastReceiver() {
                     val startIntent = Intent(context, TrackingService::class.java).apply {
                         action = "ACTION_START"
                     }
-                    context.startForegroundService(startIntent)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(startIntent)
+                    } else {
+                        context.startService(startIntent)
+                    }
                 }
             }
             BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
-                // Auto-stop service when car Bluetooth disconnects
-                val stopIntent = Intent(context, TrackingService::class.java).apply {
-                    action = "ACTION_STOP"
+                // Only stop for the car head unit disconnecting - otherwise an unrelated
+                // accessory (earbuds, a watch) dropping mid-trip would cut tracking short.
+                if (isCarAudioDevice(context, intent)) {
+                    val stopIntent = Intent(context, TrackingService::class.java).apply {
+                        action = "ACTION_STOP"
+                    }
+                    context.startService(stopIntent)
                 }
-                context.startService(stopIntent)
             }
         }
     }

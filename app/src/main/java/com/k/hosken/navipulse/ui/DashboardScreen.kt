@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -35,9 +34,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -67,8 +64,6 @@ fun DashboardScreen(
     val elapsedTime by viewModel.elapsedTimeMs.collectAsState()
     val trips by viewModel.allTrips.collectAsState()
 
-    var showCategoryDialog by remember { mutableStateOf(false) }
-
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { grantedResults ->
@@ -83,30 +78,7 @@ fun DashboardScreen(
         }
     }
 
-    // Business vs Personal stats calculation
     val totalKm = trips.sumOf { it.distanceKm }
-    val businessKm = trips.filter { it.isBusiness }.sumOf { it.distanceKm }
-    val personalKm = totalKm - businessKm
-
-    if (showCategoryDialog) {
-        AlertDialog(
-            onDismissRequest = { showCategoryDialog = false },
-            title = { Text("Classify Trip Purpose") },
-            text = { Text("Is this trip for Business or Personal use?") },
-            confirmButton = {
-                Button(onClick = {
-                    viewModel.stopTracking(isBusiness = true)
-                    showCategoryDialog = false
-                }) { Text("Business") }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = {
-                    viewModel.stopTracking(isBusiness = false)
-                    showCategoryDialog = false
-                }) { Text("Personal") }
-            }
-        )
-    }
 
     Scaffold(
         topBar = {
@@ -166,14 +138,6 @@ fun DashboardScreen(
                         Text("Total Logged", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                         Text(String.format("%.1f km", totalKm), fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     }
-                    Column {
-                        Text("Business", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                        Text(String.format("%.1f km", businessKm), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
-                    Column {
-                        Text("Personal", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                        Text(String.format("%.1f km", personalKm), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
-                    }
                 }
             }
 
@@ -229,7 +193,7 @@ fun DashboardScreen(
                         Button(
                             onClick = {
                                 if (isTracking) {
-                                    showCategoryDialog = true
+                                    viewModel.stopTracking()
                                 } else if (PermissionUtils.hasAllTrackingPermissions(context)) {
                                     viewModel.startTracking()
                                 } else {
@@ -307,18 +271,6 @@ fun TripItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = if (trip.isBusiness) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Text(
-                            text = if (trip.isBusiness) "Business" else "Personal",
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = dateFormat.format(Date(trip.startTimestamp)),
                         style = MaterialTheme.typography.labelMedium,

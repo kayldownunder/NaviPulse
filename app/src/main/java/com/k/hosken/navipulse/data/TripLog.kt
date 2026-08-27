@@ -13,6 +13,5 @@ data class TripLog(
     val durationMs: Long,
     val startAddress: String = "Unknown Location",
     val endAddress: String = "Unknown Location",
-    val isBusiness: Boolean = true,
     val notes: String = ""
 )

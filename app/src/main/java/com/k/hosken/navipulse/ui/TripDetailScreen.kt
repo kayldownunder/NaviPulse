@@ -2,7 +2,6 @@ package com.k.hosken.navipulse.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,7 +10,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -43,14 +41,12 @@ fun TripDetailScreen(
     onBackClicked: () -> Unit
 ) {
     var trip by remember { mutableStateOf<TripLog?>(null) }
-    var isBusiness by remember { mutableStateOf(true) }
     var notes by remember { mutableStateOf("") }
 
     LaunchedEffect(tripId) {
         val loadedTrip = viewModel.getTripById(tripId)
         loadedTrip?.let {
             trip = it
-            isBusiness = it.isBusiness
             notes = it.notes
         }
     }
@@ -109,20 +105,6 @@ fun TripDetailScreen(
                     }
                 }
 
-                Text("Trip Classification", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FilterChip(
-                        selected = isBusiness,
-                        onClick = { isBusiness = true },
-                        label = { Text("Business") }
-                    )
-                    FilterChip(
-                        selected = !isBusiness,
-                        onClick = { isBusiness = false },
-                        label = { Text("Personal") }
-                    )
-                }
-
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
@@ -136,7 +118,6 @@ fun TripDetailScreen(
                 Button(
                     onClick = {
                         val updatedTrip = currentTrip.copy(
-                            isBusiness = isBusiness,
                             notes = notes
                         )
                         viewModel.updateTrip(updatedTrip)

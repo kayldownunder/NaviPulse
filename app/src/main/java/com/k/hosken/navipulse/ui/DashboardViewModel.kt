@@ -36,10 +36,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         getApplication<Application>().startService(intent)
     }
 
-    fun stopTracking(isBusiness: Boolean = true) {
+    fun stopTracking() {
         val intent = Intent(getApplication(), TrackingService::class.java).apply {
             action = "ACTION_STOP"
-            putExtra("EXTRA_IS_BUSINESS", isBusiness)
         }
         getApplication<Application>().startService(intent)
     }
