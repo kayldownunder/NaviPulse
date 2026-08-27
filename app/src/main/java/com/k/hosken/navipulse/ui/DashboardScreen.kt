@@ -10,27 +10,31 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -56,7 +60,8 @@ import java.util.Locale
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel = viewModel(),
-    onTripClicked: (Long) -> Unit = {}
+    onTripClicked: (Long) -> Unit = {},
+    onSettingsClicked: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val isTracking by viewModel.isTracking.collectAsState()
@@ -82,18 +87,38 @@ fun DashboardScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("NaviPulse", fontWeight = FontWeight.Bold) },
-                actions = {
-                    Row(modifier = Modifier.padding(end = 8.dp)) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.statusBars)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 12.dp, bottom = 16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("NaviPulse", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                        IconButton(onClick = onSettingsClicked) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                    ) {
                         if (trips.isNotEmpty()) {
                             OutlinedButton(
-                                onClick = { CsvExporter.exportAndShareTrips(context, trips) },
-                                modifier = Modifier.padding(end = 4.dp)
+                                onClick = { CsvExporter.exportAndShareTrips(context, trips) }
                             ) { Text("CSV", fontSize = 12.sp) }
                             OutlinedButton(
-                                onClick = { PdfExporter.exportAndSharePdf(context, trips) },
-                                modifier = Modifier.padding(end = 4.dp)
+                                onClick = { PdfExporter.exportAndSharePdf(context, trips) }
                             ) { Text("PDF", fontSize = 12.sp) }
                         }
                         OutlinedButton(
@@ -107,11 +132,8 @@ fun DashboardScreen(
                             }
                         ) { Text("Icon", fontSize = 12.sp) }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            )
+                }
+            }
         }
     ) { paddingValues ->
         Column(
