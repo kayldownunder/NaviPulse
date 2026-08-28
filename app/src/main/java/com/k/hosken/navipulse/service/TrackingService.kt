@@ -51,6 +51,11 @@ class TrackingService : Service() {
         // jitter while stationary (parked, idling at lights), not real movement.
         private const val MIN_MOVEMENT_METERS = 5f
 
+        // GPS speed readings below this while "stationary" are just receiver noise
+        // (multipath, drift) rather than the vessel actually moving, so they're
+        // excluded from the moving-average speed calculation.
+        private const val MIN_MOVING_SPEED_KMH = 3.0
+
         private val _isTracking = MutableStateFlow(false)
         val isTracking: StateFlow<Boolean> = _isTracking.asStateFlow()
 
@@ -60,9 +65,18 @@ class TrackingService : Service() {
         private val _elapsedTimeMs = MutableStateFlow(0L)
         val elapsedTimeMs: StateFlow<Long> = _elapsedTimeMs.asStateFlow()
 
+        private val _currentSpeedKmh = MutableStateFlow(0.0)
+        val currentSpeedKmh: StateFlow<Double> = _currentSpeedKmh.asStateFlow()
+
         private val _recordedPoints = MutableStateFlow<List<LatLng>>(emptyList())
         val recordedPoints: StateFlow<List<LatLng>> = _recordedPoints.asStateFlow()
     }
+
+    // Time-weighted accumulators for the moving-average speed of the current trip.
+    private var maxSpeedKmh = 0.0
+    private var movingTimeMs = 0L
+    private var movingSpeedTimeWeightedSum = 0.0
+    private var lastSpeedSampleTimeMs = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -76,6 +90,11 @@ class TrackingService : Service() {
                     if (location.hasAccuracy() && location.accuracy > MIN_ACCURACY_METERS) {
                         return@let
                     }
+
+                    recordSpeedSample(
+                        speedKmh = if (location.hasSpeed()) location.speed * 3.6 else 0.0,
+                        sampleTimeMs = location.time
+                    )
 
                     val newPoint = LatLng(location.latitude, location.longitude)
                     val currentList = _recordedPoints.value
@@ -117,6 +136,21 @@ class TrackingService : Service() {
         return START_STICKY
     }
 
+    /** Folds one GPS speed reading into the current/max/moving-average trip stats. */
+    private fun recordSpeedSample(speedKmh: Double, sampleTimeMs: Long) {
+        _currentSpeedKmh.value = speedKmh
+        if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh
+
+        if (lastSpeedSampleTimeMs != 0L) {
+            val dt = sampleTimeMs - lastSpeedSampleTimeMs
+            if (dt > 0 && speedKmh >= MIN_MOVING_SPEED_KMH) {
+                movingTimeMs += dt
+                movingSpeedTimeWeightedSum += speedKmh * dt
+            }
+        }
+        lastSpeedSampleTimeMs = sampleTimeMs
+    }
+
     private fun startTracking() {
         if (_isTracking.value) return
 
@@ -128,7 +162,12 @@ class TrackingService : Service() {
         _isTracking.value = true
         _totalDistanceKm.value = 0.0
         _elapsedTimeMs.value = 0L
+        _currentSpeedKmh.value = 0.0
         _recordedPoints.value = emptyList()
+        maxSpeedKmh = 0.0
+        movingTimeMs = 0L
+        movingSpeedTimeWeightedSum = 0.0
+        lastSpeedSampleTimeMs = 0L
         startTime = System.currentTimeMillis()
 
         startForeground(NOTIFICATION_ID, createNotification())
@@ -167,7 +206,11 @@ class TrackingService : Service() {
         val tripStartTime = startTime
         val tripDistanceKm = totalDistanceKm.value
         val tripDurationMs = elapsedTimeMs.value
+        // Average speed only over time the vessel was actually moving, not the whole trip duration.
+        val tripAvgSpeedKmh = if (movingTimeMs > 0) movingSpeedTimeWeightedSum / movingTimeMs else 0.0
+        val tripMaxSpeedKmh = maxSpeedKmh
 
+        _currentSpeedKmh.value = 0.0
         stopForeground(STOP_FOREGROUND_REMOVE)
 
         // Geocoder.getFromLocation blocks on network I/O; run it (and the DB write)
@@ -181,6 +224,8 @@ class TrackingService : Service() {
                 endTimestamp = System.currentTimeMillis(),
                 distanceKm = tripDistanceKm,
                 durationMs = tripDurationMs,
+                avgSpeedKmh = tripAvgSpeedKmh,
+                maxSpeedKmh = tripMaxSpeedKmh,
                 startAddress = startAddress,
                 endAddress = endAddress
             )

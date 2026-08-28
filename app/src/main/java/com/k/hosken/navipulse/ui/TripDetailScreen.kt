@@ -19,6 +19,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k.hosken.navipulse.data.TripLog
+import com.k.hosken.navipulse.data.formatKm
+import com.k.hosken.navipulse.data.formatKmh
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -42,6 +45,8 @@ fun TripDetailScreen(
 ) {
     var trip by remember { mutableStateOf<TripLog?>(null) }
     var notes by remember { mutableStateOf("") }
+    val distanceUnit by viewModel.distanceUnit.collectAsState()
+    val speedUnit by viewModel.speedUnit.collectAsState()
 
     LaunchedEffect(tripId) {
         val loadedTrip = viewModel.getTripById(tripId)
@@ -90,9 +95,15 @@ fun TripDetailScreen(
                             color = Color.Gray
                         )
                         Text(
-                            text = String.format("%.2f km", currentTrip.distanceKm),
+                            text = distanceUnit.formatKm(currentTrip.distanceKm),
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Avg speed: ${speedUnit.formatKmh(currentTrip.avgSpeedKmh)}  •  " +
+                                "Max speed: ${speedUnit.formatKmh(currentTrip.maxSpeedKmh)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
                         )
                         Text(
                             text = "Start: ${currentTrip.startAddress}",

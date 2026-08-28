@@ -12,10 +12,31 @@ import kotlinx.coroutines.flow.map
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-enum class DistanceUnit(val label: String) { METRES("Metres"), FEET("Feet") }
-enum class SpeedUnit(val label: String) { KMH("km/h"), MPH("mph") }
-enum class ElevationUnit(val label: String) { METRES("Metres"), FEET("Feet") }
-enum class AreaUnit(val label: String) { HECTARES("Hectares"), ACRES("Acres") }
+enum class DistanceUnit(val label: String) { KM("km"), NM("NM") }
+enum class SpeedUnit(val label: String) { KMH("km/hr"), NM("NM/hr") }
+
+private const val KM_TO_NM = 0.539957
+private const val NM_TO_KM = 1.852
+
+/** Converts a distance in kilometers to this unit. */
+fun DistanceUnit.fromKm(km: Double): Double = when (this) {
+    DistanceUnit.KM -> km
+    DistanceUnit.NM -> km * KM_TO_NM
+}
+
+/** Formats a distance given in kilometers into this unit, e.g. "12.34 NM". */
+fun DistanceUnit.formatKm(km: Double, decimals: Int = 2): String =
+    "%.${decimals}f %s".format(fromKm(km), label)
+
+/** Converts a speed in km/hr to this unit. */
+fun SpeedUnit.fromKmh(kmh: Double): Double = when (this) {
+    SpeedUnit.KMH -> kmh
+    SpeedUnit.NM -> kmh / NM_TO_KM
+}
+
+/** Formats a speed given in km/hr into this unit, e.g. "12.34 NM/hr". */
+fun SpeedUnit.formatKmh(kmh: Double, decimals: Int = 2): String =
+    "%.${decimals}f %s".format(fromKmh(kmh), label)
 
 class SettingsRepository(private val context: Context) {
 
@@ -23,24 +44,16 @@ class SettingsRepository(private val context: Context) {
         val SCREEN_ON = booleanPreferencesKey("screen_on")
         val DISTANCE_UNIT = stringPreferencesKey("distance_unit")
         val SPEED_UNIT = stringPreferencesKey("speed_unit")
-        val ELEVATION_UNIT = stringPreferencesKey("elevation_unit")
-        val AREA_UNIT = stringPreferencesKey("area_unit")
     }
 
     val screenOnEnabled: Flow<Boolean> = context.settingsDataStore.data
         .map { it[Keys.SCREEN_ON] ?: false }
 
     val distanceUnit: Flow<DistanceUnit> = context.settingsDataStore.data
-        .map { it.toEnum(Keys.DISTANCE_UNIT, DistanceUnit.METRES) }
+        .map { it.toEnum(Keys.DISTANCE_UNIT, DistanceUnit.KM) }
 
     val speedUnit: Flow<SpeedUnit> = context.settingsDataStore.data
         .map { it.toEnum(Keys.SPEED_UNIT, SpeedUnit.KMH) }
-
-    val elevationUnit: Flow<ElevationUnit> = context.settingsDataStore.data
-        .map { it.toEnum(Keys.ELEVATION_UNIT, ElevationUnit.METRES) }
-
-    val areaUnit: Flow<AreaUnit> = context.settingsDataStore.data
-        .map { it.toEnum(Keys.AREA_UNIT, AreaUnit.HECTARES) }
 
     suspend fun setScreenOnEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { it[Keys.SCREEN_ON] = enabled }
@@ -52,14 +65,6 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setSpeedUnit(unit: SpeedUnit) {
         context.settingsDataStore.edit { it[Keys.SPEED_UNIT] = unit.name }
-    }
-
-    suspend fun setElevationUnit(unit: ElevationUnit) {
-        context.settingsDataStore.edit { it[Keys.ELEVATION_UNIT] = unit.name }
-    }
-
-    suspend fun setAreaUnit(unit: AreaUnit) {
-        context.settingsDataStore.edit { it[Keys.AREA_UNIT] = unit.name }
     }
 
     private inline fun <reified T : Enum<T>> Preferences.toEnum(

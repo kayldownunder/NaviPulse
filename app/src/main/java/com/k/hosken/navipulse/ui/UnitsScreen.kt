@@ -29,9 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.k.hosken.navipulse.data.AreaUnit
 import com.k.hosken.navipulse.data.DistanceUnit
-import com.k.hosken.navipulse.data.ElevationUnit
 import com.k.hosken.navipulse.data.SpeedUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,8 +40,6 @@ fun UnitsScreen(
 ) {
     val distanceUnit by viewModel.distanceUnit.collectAsState()
     val speedUnit by viewModel.speedUnit.collectAsState()
-    val elevationUnit by viewModel.elevationUnit.collectAsState()
-    val areaUnit by viewModel.areaUnit.collectAsState()
 
     Scaffold(
         topBar = {
@@ -81,20 +77,6 @@ fun UnitsScreen(
                 selected = speedUnit,
                 label = { it.label },
                 onSelect = viewModel::setSpeedUnit
-            )
-            UnitSection(
-                title = "Elevation",
-                options = ElevationUnit.entries,
-                selected = elevationUnit,
-                label = { it.label },
-                onSelect = viewModel::setElevationUnit
-            )
-            UnitSection(
-                title = "Area",
-                options = AreaUnit.entries,
-                selected = areaUnit,
-                label = { it.label },
-                onSelect = viewModel::setAreaUnit
             )
         }
     }

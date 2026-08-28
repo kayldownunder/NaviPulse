@@ -11,6 +11,8 @@ data class TripLog(
     val endTimestamp: Long,
     val distanceKm: Double,
     val durationMs: Long,
+    val avgSpeedKmh: Double = 0.0,
+    val maxSpeedKmh: Double = 0.0,
     val startAddress: String = "Unknown Location",
     val endAddress: String = "Unknown Location",
     val notes: String = ""

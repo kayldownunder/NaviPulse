@@ -47,7 +47,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.k.hosken.navipulse.data.DistanceUnit
 import com.k.hosken.navipulse.data.TripLog
+import com.k.hosken.navipulse.data.formatKm
+import com.k.hosken.navipulse.data.formatKmh
 import com.k.hosken.navipulse.util.CsvExporter
 import com.k.hosken.navipulse.util.IconSwitcher
 import com.k.hosken.navipulse.util.PdfExporter
@@ -67,7 +70,10 @@ fun DashboardScreen(
     val isTracking by viewModel.isTracking.collectAsState()
     val totalDistance by viewModel.totalDistanceKm.collectAsState()
     val elapsedTime by viewModel.elapsedTimeMs.collectAsState()
+    val currentSpeed by viewModel.currentSpeedKmh.collectAsState()
     val trips by viewModel.allTrips.collectAsState()
+    val distanceUnit by viewModel.distanceUnit.collectAsState()
+    val speedUnit by viewModel.speedUnit.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -103,7 +109,7 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("NaviPulse", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                        Text("NaviPulse", fontWeight = FontWeight.Bold, fontSize = 30.sp)
                         IconButton(onClick = onSettingsClicked) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings")
                         }
@@ -115,10 +121,10 @@ fun DashboardScreen(
                     ) {
                         if (trips.isNotEmpty()) {
                             OutlinedButton(
-                                onClick = { CsvExporter.exportAndShareTrips(context, trips) }
+                                onClick = { CsvExporter.exportAndShareTrips(context, trips, distanceUnit, speedUnit) }
                             ) { Text("CSV", fontSize = 12.sp) }
                             OutlinedButton(
-                                onClick = { PdfExporter.exportAndSharePdf(context, trips) }
+                                onClick = { PdfExporter.exportAndSharePdf(context, trips, distanceUnit, speedUnit) }
                             ) { Text("PDF", fontSize = 12.sp) }
                         }
                         OutlinedButton(
@@ -158,7 +164,7 @@ fun DashboardScreen(
                 ) {
                     Column {
                         Text("Total Logged", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                        Text(String.format("%.1f km", totalKm), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text(distanceUnit.formatKm(totalKm, decimals = 1), fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -198,13 +204,18 @@ fun DashboardScreen(
                                 modifier = Modifier.padding(top = 12.dp)
                             ) {
                                 Text(
-                                    text = String.format("%.2f km", totalDistance),
+                                    text = distanceUnit.formatKm(totalDistance),
                                     fontSize = 36.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = formatDuration(elapsedTime),
                                     fontSize = 18.sp,
+                                    color = Color.DarkGray
+                                )
+                                Text(
+                                    text = speedUnit.formatKmh(currentSpeed),
+                                    fontSize = 16.sp,
                                     color = Color.DarkGray
                                 )
                             }
@@ -259,6 +270,7 @@ fun DashboardScreen(
                     items(trips, key = { it.id }) { trip ->
                         TripItem(
                             trip = trip,
+                            distanceUnit = distanceUnit,
                             onClick = { onTripClicked(trip.id) },
                             onDelete = { viewModel.deleteTrip(trip.id) }
                         )
@@ -272,6 +284,7 @@ fun DashboardScreen(
 @Composable
 fun TripItem(
     trip: TripLog,
+    distanceUnit: DistanceUnit,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -303,7 +316,7 @@ fun TripItem(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = String.format("%.2f km", trip.distanceKm),
+                    text = distanceUnit.formatKm(trip.distanceKm),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )

@@ -6,7 +6,11 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
+import com.k.hosken.navipulse.data.DistanceUnit
+import com.k.hosken.navipulse.data.SpeedUnit
 import com.k.hosken.navipulse.data.TripLog
+import com.k.hosken.navipulse.data.formatKm
+import com.k.hosken.navipulse.data.formatKmh
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -15,7 +19,12 @@ import java.util.Locale
 
 object PdfExporter {
 
-    fun exportAndSharePdf(context: Context, trips: List<TripLog>) {
+    fun exportAndSharePdf(
+        context: Context,
+        trips: List<TripLog>,
+        distanceUnit: DistanceUnit = DistanceUnit.KM,
+        speedUnit: SpeedUnit = SpeedUnit.KMH
+    ) {
         val document = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 Size
         val page = document.startPage(pageInfo)
@@ -68,14 +77,15 @@ object PdfExporter {
         // Summary Card
         canvas.drawRect(40f, yPos, 555f, yPos + 40f, Paint().apply { color = Color.parseColor("#F0F0F0") })
         canvas.drawText("Total Trips: ${trips.size}", 50f, yPos + 25f, headerPaint)
-        canvas.drawText("Total Distance: ${String.format(Locale.US, "%.2f km", totalKm)}", 200f, yPos + 25f, headerPaint)
+        canvas.drawText("Total Distance: ${distanceUnit.formatKm(totalKm)}", 200f, yPos + 25f, headerPaint)
         canvas.drawText("Total Time: $totalDurationStr", 400f, yPos + 25f, headerPaint)
         yPos += 60f
 
         // Table Header
         canvas.drawText("Start Time", 40f, yPos, headerPaint)
-        canvas.drawText("Distance", 220f, yPos, headerPaint)
-        canvas.drawText("Duration", 340f, yPos, headerPaint)
+        canvas.drawText("Distance", 170f, yPos, headerPaint)
+        canvas.drawText("Avg/Max Speed", 240f, yPos, headerPaint)
+        canvas.drawText("Duration", 380f, yPos, headerPaint)
         canvas.drawText("Location", 440f, yPos, headerPaint)
         yPos += 10f
         canvas.drawLine(40f, yPos, 555f, yPos, linePaint)
@@ -86,13 +96,16 @@ object PdfExporter {
             if (yPos > 800f) break // Simple 1-page guardrail
 
             val startStr = dateFormat.format(Date(trip.startTimestamp))
-            val distStr = String.format(Locale.US, "%.2f km", trip.distanceKm)
+            val distStr = distanceUnit.formatKm(trip.distanceKm)
+            val speedStr = "${speedUnit.formatKmh(trip.avgSpeedKmh, decimals = 1)} / " +
+                speedUnit.formatKmh(trip.maxSpeedKmh, decimals = 1)
             val durationSec = trip.durationMs / 1000
             val durStr = String.format("%02d:%02d", durationSec / 60, durationSec % 60)
 
             canvas.drawText(startStr, 40f, yPos, textPaint)
-            canvas.drawText(distStr, 220f, yPos, textPaint)
-            canvas.drawText(durStr, 340f, yPos, textPaint)
+            canvas.drawText(distStr, 170f, yPos, textPaint)
+            canvas.drawText(speedStr, 240f, yPos, textPaint)
+            canvas.drawText(durStr, 380f, yPos, textPaint)
             canvas.drawText(trip.startAddress, 440f, yPos, textPaint)
             yPos += 20f
 

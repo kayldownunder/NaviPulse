@@ -3,9 +3,7 @@ package com.k.hosken.navipulse.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.k.hosken.navipulse.data.AreaUnit
 import com.k.hosken.navipulse.data.DistanceUnit
-import com.k.hosken.navipulse.data.ElevationUnit
 import com.k.hosken.navipulse.data.SettingsRepository
 import com.k.hosken.navipulse.data.SpeedUnit
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,16 +19,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val distanceUnit: StateFlow<DistanceUnit> = repository.distanceUnit
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DistanceUnit.METRES)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DistanceUnit.KM)
 
     val speedUnit: StateFlow<SpeedUnit> = repository.speedUnit
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SpeedUnit.KMH)
-
-    val elevationUnit: StateFlow<ElevationUnit> = repository.elevationUnit
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ElevationUnit.METRES)
-
-    val areaUnit: StateFlow<AreaUnit> = repository.areaUnit
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AreaUnit.HECTARES)
 
     fun setScreenOnEnabled(enabled: Boolean) {
         viewModelScope.launch { repository.setScreenOnEnabled(enabled) }
@@ -42,13 +34,5 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setSpeedUnit(unit: SpeedUnit) {
         viewModelScope.launch { repository.setSpeedUnit(unit) }
-    }
-
-    fun setElevationUnit(unit: ElevationUnit) {
-        viewModelScope.launch { repository.setElevationUnit(unit) }
-    }
-
-    fun setAreaUnit(unit: AreaUnit) {
-        viewModelScope.launch { repository.setAreaUnit(unit) }
     }
 }

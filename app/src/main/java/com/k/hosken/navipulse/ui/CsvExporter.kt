@@ -3,7 +3,11 @@ package com.k.hosken.navipulse.util
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
+import com.k.hosken.navipulse.data.DistanceUnit
+import com.k.hosken.navipulse.data.SpeedUnit
 import com.k.hosken.navipulse.data.TripLog
+import com.k.hosken.navipulse.data.fromKm
+import com.k.hosken.navipulse.data.fromKmh
 import java.io.File
 import java.io.FileWriter
 import java.text.SimpleDateFormat
@@ -12,7 +16,12 @@ import java.util.Locale
 
 object CsvExporter {
 
-    fun exportAndShareTrips(context: Context, trips: List<TripLog>) {
+    fun exportAndShareTrips(
+        context: Context,
+        trips: List<TripLog>,
+        distanceUnit: DistanceUnit = DistanceUnit.KM,
+        speedUnit: SpeedUnit = SpeedUnit.KMH
+    ) {
         val fileName = "NaviPulse_${System.currentTimeMillis()}.csv"
         val exportFile = File(context.cacheDir, fileName)
 
@@ -21,7 +30,11 @@ object CsvExporter {
             val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
             // Header row
-            writer.append("ID,Start Time,End Time,Distance (km),Duration (mm:ss),Start Address,End Address,Notes\n")
+            writer.append(
+                "ID,Start Time,End Time,Distance (${distanceUnit.label})," +
+                    "Avg Speed (${speedUnit.label}),Max Speed (${speedUnit.label})," +
+                    "Duration (mm:ss),Start Address,End Address,Notes\n"
+            )
 
             // Data rows
             for (trip in trips) {
@@ -33,7 +46,9 @@ object CsvExporter {
                 writer.append("${trip.id},")
                 writer.append("${csvField(startTimeStr)},")
                 writer.append("${csvField(endTimeStr)},")
-                writer.append("${String.format(Locale.US, "%.2f", trip.distanceKm)},")
+                writer.append("${String.format(Locale.US, "%.2f", distanceUnit.fromKm(trip.distanceKm))},")
+                writer.append("${String.format(Locale.US, "%.2f", speedUnit.fromKmh(trip.avgSpeedKmh))},")
+                writer.append("${String.format(Locale.US, "%.2f", speedUnit.fromKmh(trip.maxSpeedKmh))},")
                 writer.append("${csvField(durationStr)},")
                 writer.append("${csvField(trip.startAddress)},")
                 writer.append("${csvField(trip.endAddress)},")

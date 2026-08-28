@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [TripLog::class], version = 2, exportSchema = false)
+@Database(entities = [TripLog::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun tripDao(): TripDao
@@ -45,6 +45,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Adds average/max speed columns captured during tracking.
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE trip_logs ADD COLUMN avgSpeedKmh REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE trip_logs ADD COLUMN maxSpeedKmh REAL NOT NULL DEFAULT 0.0")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 // No fallbackToDestructiveMigration: a future schema bump without a real
@@ -54,7 +62,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "navipulse_db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance
