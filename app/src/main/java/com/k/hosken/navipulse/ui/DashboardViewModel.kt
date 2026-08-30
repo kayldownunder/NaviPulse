@@ -7,12 +7,17 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import com.k.hosken.navipulse.data.AppDatabase
 import com.k.hosken.navipulse.data.DistanceUnit
+import com.k.hosken.navipulse.data.FuelLog
 import com.k.hosken.navipulse.data.SettingsRepository
 import com.k.hosken.navipulse.data.SpeedUnit
 import com.k.hosken.navipulse.data.TripLog
+import com.k.hosken.navipulse.data.avgSpeedKmhSinceLastFuelUp
+import com.k.hosken.navipulse.data.distanceKmSinceLastFuelUp
+import com.k.hosken.navipulse.data.maxSpeedKmhSinceLastFuelUp
 import com.k.hosken.navipulse.service.TrackingService
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -35,7 +40,28 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             initialValue = SpeedUnit.KMH
         )
 
+    val backgroundImagePath: StateFlow<String?> = settingsRepository.backgroundImagePath
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
+    val timeZoneId: StateFlow<String> = settingsRepository.timeZoneId
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = java.util.TimeZone.getDefault().id
+        )
+
     val allTrips: StateFlow<List<TripLog>> = db.tripDao().getAllTrips()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val allFuelLogs: StateFlow<List<FuelLog>> = db.fuelDao().getAllFuelLogs()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -46,6 +72,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     val totalDistanceKm: StateFlow<Double> = TrackingService.totalDistanceKm
     val elapsedTimeMs: StateFlow<Long> = TrackingService.elapsedTimeMs
     val currentSpeedKmh: StateFlow<Double> = TrackingService.currentSpeedKmh
+    val currentTripAvgSpeedKmh: StateFlow<Double> = TrackingService.currentTripAvgSpeedKmh
+    val engineRunTimeMs: StateFlow<Long> = TrackingService.engineRunTimeMs
     val livePoints: StateFlow<List<LatLng>> = TrackingService.recordedPoints
 
     fun startTracking() {
@@ -76,5 +104,29 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     suspend fun getTripById(tripId: Long): TripLog? {
         return db.tripDao().getTripById(tripId)
+    }
+
+    fun saveFuelLog(dateRefuelled: Long, litres: Double, pricePerLitre: Double) {
+        viewModelScope.launch {
+            val trips = db.tripDao().getAllTrips().first()
+            val fuelLogs = db.fuelDao().getAllFuelLogs().first()
+            db.fuelDao().insertFuelLog(
+                FuelLog(
+                    dateRefuelled = dateRefuelled,
+                    litres = litres,
+                    pricePerLitre = pricePerLitre,
+                    totalPrice = litres * pricePerLitre,
+                    distanceKmSinceLastFuelUp = distanceKmSinceLastFuelUp(trips, fuelLogs, dateRefuelled),
+                    avgSpeedKmhSinceLastFuelUp = avgSpeedKmhSinceLastFuelUp(trips, fuelLogs, dateRefuelled),
+                    maxSpeedKmhSinceLastFuelUp = maxSpeedKmhSinceLastFuelUp(trips, fuelLogs, dateRefuelled)
+                )
+            )
+        }
+    }
+
+    fun deleteFuelLog(fuelLogId: Long) {
+        viewModelScope.launch {
+            db.fuelDao().deleteFuelLogById(fuelLogId)
+        }
     }
 }

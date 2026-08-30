@@ -28,13 +28,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import com.k.hosken.navipulse.data.TripLog
 import com.k.hosken.navipulse.data.formatKm
 import com.k.hosken.navipulse.data.formatKmh
+import com.k.hosken.navipulse.util.openTripInGoogleMaps
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,10 +46,12 @@ fun TripDetailScreen(
     viewModel: DashboardViewModel,
     onBackClicked: () -> Unit
 ) {
+    val context = LocalContext.current
     var trip by remember { mutableStateOf<TripLog?>(null) }
     var notes by remember { mutableStateOf("") }
     val distanceUnit by viewModel.distanceUnit.collectAsState()
     val speedUnit by viewModel.speedUnit.collectAsState()
+    val timeZoneId by viewModel.timeZoneId.collectAsState()
 
     LaunchedEffect(tripId) {
         val loadedTrip = viewModel.getTripById(tripId)
@@ -72,7 +77,11 @@ fun TripDetailScreen(
         }
     ) { paddingValues ->
         trip?.let { currentTrip ->
-            val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy - hh:mm a", Locale.getDefault()) }
+            val dateFormat = remember(timeZoneId) {
+                SimpleDateFormat("MMM dd, yyyy - hh:mm a", Locale.getDefault()).apply {
+                    timeZone = TimeZone.getTimeZone(timeZoneId)
+                }
+            }
 
             Column(
                 modifier = Modifier
@@ -90,7 +99,12 @@ fun TripDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = dateFormat.format(Date(currentTrip.startTimestamp)),
+                            text = "Start: ${dateFormat.format(Date(currentTrip.startTimestamp))}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = "Stop: ${dateFormat.format(Date(currentTrip.endTimestamp))}",
                             style = MaterialTheme.typography.labelMedium,
                             color = Color.Gray
                         )
@@ -102,6 +116,11 @@ fun TripDetailScreen(
                         Text(
                             text = "Avg speed: ${speedUnit.formatKmh(currentTrip.avgSpeedKmh)}  •  " +
                                 "Max speed: ${speedUnit.formatKmh(currentTrip.maxSpeedKmh)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = "Time underway: ${formatDuration(currentTrip.movingTimeMs)}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.Gray
                         )
@@ -123,6 +142,13 @@ fun TripDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3
                 )
+
+                Button(
+                    onClick = { openTripInGoogleMaps(context, currentTrip) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("View Route on Google Maps")
+                }
 
                 Spacer(modifier = Modifier.weight(1f))
 

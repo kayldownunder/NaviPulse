@@ -42,8 +42,8 @@
         <activity-alias
             android:name=".MainActivityWifi"
             android:targetActivity=".MainActivity"
-            android:icon="@mipmap/ic_launcher_wifi"
-            android:roundIcon="@mipmap/ic_launcher_wifi_round"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
             android:enabled="false"
             android:exported="true">
             <intent-filter>

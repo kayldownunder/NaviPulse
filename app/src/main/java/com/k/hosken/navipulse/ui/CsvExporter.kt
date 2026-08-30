@@ -13,6 +13,7 @@ import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 object CsvExporter {
 
@@ -20,14 +21,17 @@ object CsvExporter {
         context: Context,
         trips: List<TripLog>,
         distanceUnit: DistanceUnit = DistanceUnit.KM,
-        speedUnit: SpeedUnit = SpeedUnit.KMH
+        speedUnit: SpeedUnit = SpeedUnit.KMH,
+        timeZoneId: String = TimeZone.getDefault().id
     ) {
         val fileName = "NaviPulse_${System.currentTimeMillis()}.csv"
         val exportFile = File(context.cacheDir, fileName)
 
         try {
             val writer = FileWriter(exportFile)
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).apply {
+                timeZone = TimeZone.getTimeZone(timeZoneId)
+            }
 
             // Header row
             writer.append(

@@ -20,6 +20,7 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
 import com.k.hosken.navipulse.data.AppDatabase
 import com.k.hosken.navipulse.data.TripLog
+import com.k.hosken.navipulse.data.encodeRoute
 import com.k.hosken.navipulse.util.GeocoderUtils
 import com.k.hosken.navipulse.util.PermissionUtils
 import kotlinx.coroutines.CoroutineScope
@@ -51,10 +52,10 @@ class TrackingService : Service() {
         // jitter while stationary (parked, idling at lights), not real movement.
         private const val MIN_MOVEMENT_METERS = 5f
 
-        // GPS speed readings below this while "stationary" are just receiver noise
-        // (multipath, drift) rather than the vessel actually moving, so they're
-        // excluded from the moving-average speed calculation.
-        private const val MIN_MOVING_SPEED_KMH = 3.0
+        // Speed readings below this are treated as "not underway" — 2 knots, the
+        // conventional threshold below which a vessel's motion is dock drift/current
+        // rather than real travel — and excluded from the moving-average speed calculation.
+        private const val MIN_MOVING_SPEED_KMH = 3.704
 
         private val _isTracking = MutableStateFlow(false)
         val isTracking: StateFlow<Boolean> = _isTracking.asStateFlow()
@@ -67,6 +68,15 @@ class TrackingService : Service() {
 
         private val _currentSpeedKmh = MutableStateFlow(0.0)
         val currentSpeedKmh: StateFlow<Double> = _currentSpeedKmh.asStateFlow()
+
+        // Moving-average speed of the trip in progress, counting only time spent above
+        // MIN_MOVING_SPEED_KMH (2 knots) — i.e. actually underway, not idling/drifting.
+        private val _currentTripAvgSpeedKmh = MutableStateFlow(0.0)
+        val currentTripAvgSpeedKmh: StateFlow<Double> = _currentTripAvgSpeedKmh.asStateFlow()
+
+        // Wall-clock time the trip in progress has spent above MIN_MOVING_SPEED_KMH.
+        private val _engineRunTimeMs = MutableStateFlow(0L)
+        val engineRunTimeMs: StateFlow<Long> = _engineRunTimeMs.asStateFlow()
 
         private val _recordedPoints = MutableStateFlow<List<LatLng>>(emptyList())
         val recordedPoints: StateFlow<List<LatLng>> = _recordedPoints.asStateFlow()
@@ -149,6 +159,9 @@ class TrackingService : Service() {
             }
         }
         lastSpeedSampleTimeMs = sampleTimeMs
+
+        _engineRunTimeMs.value = movingTimeMs
+        _currentTripAvgSpeedKmh.value = if (movingTimeMs > 0) movingSpeedTimeWeightedSum / movingTimeMs else 0.0
     }
 
     private fun startTracking() {
@@ -163,6 +176,8 @@ class TrackingService : Service() {
         _totalDistanceKm.value = 0.0
         _elapsedTimeMs.value = 0L
         _currentSpeedKmh.value = 0.0
+        _currentTripAvgSpeedKmh.value = 0.0
+        _engineRunTimeMs.value = 0L
         _recordedPoints.value = emptyList()
         maxSpeedKmh = 0.0
         movingTimeMs = 0L
@@ -209,6 +224,8 @@ class TrackingService : Service() {
         // Average speed only over time the vessel was actually moving, not the whole trip duration.
         val tripAvgSpeedKmh = if (movingTimeMs > 0) movingSpeedTimeWeightedSum / movingTimeMs else 0.0
         val tripMaxSpeedKmh = maxSpeedKmh
+        val tripMovingTimeMs = movingTimeMs
+        val tripRoutePointsCsv = recordedPoints.value.encodeRoute()
 
         _currentSpeedKmh.value = 0.0
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -226,8 +243,10 @@ class TrackingService : Service() {
                 durationMs = tripDurationMs,
                 avgSpeedKmh = tripAvgSpeedKmh,
                 maxSpeedKmh = tripMaxSpeedKmh,
+                movingTimeMs = tripMovingTimeMs,
                 startAddress = startAddress,
-                endAddress = endAddress
+                endAddress = endAddress,
+                routePointsCsv = tripRoutePointsCsv
             )
             db.tripDao().insertTrip(trip)
 

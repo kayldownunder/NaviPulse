@@ -2,10 +2,13 @@ package com.k.hosken.navipulse.util
 
 import android.content.Context
 import android.location.Geocoder
+import android.location.Location
 import com.google.android.gms.maps.model.LatLng
 import org.json.JSONArray
+import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import java.util.Locale
 
 object GeocoderUtils {
@@ -21,14 +24,25 @@ object GeocoderUtils {
     // Indian Ocean is in the thousands. Above this we treat it as "no specific feature found".
     private const val MAX_SPECIFIC_MARINE_FEATURE_AREA_DEG2 = 10.0
 
+    // OpenStreetMap's query API - covers named offshore infrastructure (oil/gas platforms,
+    // FPSOs, etc.) that the marine gazetteer above doesn't carry, since those are point
+    // installations rather than charted geographic features: https://overpass-api.de
+    private const val OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+
+    // How far out a named platform/installation is still considered "at" that landmark.
+    private const val PLATFORM_SEARCH_RADIUS_METERS = 50_000
+    private const val MAX_PLATFORM_DISTANCE_METERS = 50_000.0
+
     /**
-     * Resolves a recorded position to a human-readable place name: the nearest named nautical
-     * chart feature (bay, channel, reef, island, harbour, river, etc.) when the point is on or
-     * near water, falling back to a street address on land. Marine names are tried first because
-     * a point just off a jetty or shoreline still reverse-geocodes to the nearest street, which
-     * would otherwise always win even though the vessel is actually on the water.
+     * Resolves a recorded position to a human-readable place name: the nearest named offshore
+     * installation (platform, FPSO, rig) or nautical chart feature (bay, channel, reef, island,
+     * harbour, river, etc.) when the point is on or near water, falling back to a street address
+     * on land. Marine names are tried first because a point just off a jetty or shoreline still
+     * reverse-geocodes to the nearest street, which would otherwise always win even though the
+     * vessel is actually on the water.
      */
     fun getAddressFromLatLng(context: Context, location: LatLng): String {
+        lookupNearestOffshorePlatform(location)?.let { return it }
         lookupNearestMarineFeature(location)?.let { return it }
         reverseGeocodeLand(context, location)?.let { return it }
         return "${location.latitude}, ${location.longitude}"
@@ -49,6 +63,65 @@ object GeocoderUtils {
             val locality = address.locality?.takeIf { it != thoroughfare }
 
             "${thoroughfare ?: ""}, ${locality ?: ""}".trim(',', ' ').ifBlank { null }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Queries OpenStreetMap for named offshore installations (platforms, FPSOs, wellheads) within
+     * [PLATFORM_SEARCH_RADIUS_METERS] of this point, and returns the nearest one by name.
+     */
+    private fun lookupNearestOffshorePlatform(location: LatLng): String? {
+        return try {
+            val query = """
+                [out:json][timeout:10];
+                (
+                  node(around:$PLATFORM_SEARCH_RADIUS_METERS,${location.latitude},${location.longitude})["man_made"="offshore_platform"]["name"];
+                  node(around:$PLATFORM_SEARCH_RADIUS_METERS,${location.latitude},${location.longitude})["seamark:type"="platform"]["name"];
+                );
+                out body;
+            """.trimIndent()
+
+            val connection = (URL(OVERPASS_URL).openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                doOutput = true
+                connectTimeout = 8000
+                readTimeout = 8000
+            }
+            connection.outputStream.use {
+                it.write("data=${URLEncoder.encode(query, "UTF-8")}".toByteArray())
+            }
+
+            val body = try {
+                if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } finally {
+                connection.disconnect()
+            }
+
+            val elements = JSONObject(body).optJSONArray("elements") ?: return null
+            var bestName: String? = null
+            var bestDistanceMeters = Float.MAX_VALUE
+            val distanceResult = FloatArray(1)
+
+            for (i in 0 until elements.length()) {
+                val element = elements.getJSONObject(i)
+                val name = element.optJSONObject("tags")
+                    ?.optString("name")
+                    ?.takeIf { it.isNotBlank() } ?: continue
+                val lat = element.optDouble("lat", Double.NaN)
+                val lon = element.optDouble("lon", Double.NaN)
+                if (lat.isNaN() || lon.isNaN()) continue
+
+                Location.distanceBetween(location.latitude, location.longitude, lat, lon, distanceResult)
+                if (distanceResult[0] < bestDistanceMeters) {
+                    bestDistanceMeters = distanceResult[0]
+                    bestName = name
+                }
+            }
+
+            if (bestDistanceMeters <= MAX_PLATFORM_DISTANCE_METERS) bestName else null
         } catch (e: Exception) {
             null
         }

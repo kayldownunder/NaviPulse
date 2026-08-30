@@ -16,6 +16,7 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 object PdfExporter {
 
@@ -23,7 +24,8 @@ object PdfExporter {
         context: Context,
         trips: List<TripLog>,
         distanceUnit: DistanceUnit = DistanceUnit.KM,
-        speedUnit: SpeedUnit = SpeedUnit.KMH
+        speedUnit: SpeedUnit = SpeedUnit.KMH,
+        timeZoneId: String = TimeZone.getDefault().id
     ) {
         val document = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 Size
@@ -64,7 +66,9 @@ object PdfExporter {
         canvas.drawText("NaviPulse - Summary Report", 40f, yPos, titlePaint)
         yPos += 20f
 
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone(timeZoneId)
+        }
         canvas.drawText("Generated on: ${dateFormat.format(Date())}", 40f, yPos, subTitlePaint)
         yPos += 25f
 
