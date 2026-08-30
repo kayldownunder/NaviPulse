@@ -670,19 +670,24 @@ fun FuelItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(20.dp)
-                    .padding(top = 24.dp)
             ) {
                 Text(
                     text = dateFormat.format(Date(fuelLog.dateRefuelled)),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "⛽ Total: $${String.format(Locale.getDefault(), "%.2f", fuelLog.totalPrice)}",
-                    fontSize = 16.sp,
+                    text = "Top Speed",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = speedUnit.formatKmh(fuelLog.maxSpeedKmhSinceLastFuelUp),
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -712,8 +717,14 @@ fun FuelItem(
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+            }
 
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 84.dp, end = 4.dp)
+            ) {
                 Text(
                     text = "${String.format(Locale.getDefault(), "%.2f", fuelLog.litres)} L @ $${String.format(Locale.getDefault(), "%.2f", fuelLog.pricePerLitre)}/L",
                     color = Color.White,
@@ -728,22 +739,12 @@ fun FuelItem(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
-            }
 
-            Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 44.dp, end = 4.dp)
-            ) {
+                Spacer(modifier = Modifier.height(10.dp))
+
                 Text(
-                    text = "Top Speed",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray
-                )
-                Text(
-                    text = speedUnit.formatKmh(fuelLog.maxSpeedKmhSinceLastFuelUp),
-                    fontSize = 18.sp,
+                    text = "⛽ Total: $${String.format(Locale.getDefault(), "%.2f", fuelLog.totalPrice)}",
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -828,19 +829,6 @@ fun TripItem(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Time Underway",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray
-                )
-                Text(
-                    text = formatDuration(trip.movingTimeMs),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
                     text = "${trip.startAddress} → ${trip.endAddress}",
                     color = Color.White,
                     fontSize = 16.sp,
@@ -862,6 +850,19 @@ fun TripItem(
                 )
                 Text(
                     text = speedUnit.formatKmh(trip.maxSpeedKmh),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Time Underway",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = formatDuration(trip.movingTimeMs),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
