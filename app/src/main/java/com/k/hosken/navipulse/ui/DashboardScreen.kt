@@ -241,13 +241,22 @@ fun DashboardScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .onSizeChanged { size ->
-                            if (headerMaxHeightPx == 0f) {
+                            // Keeps tracking the natural (unclipped) content height while at
+                            // rest, rather than locking in a single early measurement - the
+                            // content can grow after that first frame (e.g. a Google Font
+                            // finishing its download with different metrics, or the live
+                            // tracking card appearing), and a stale max height would otherwise
+                            // permanently clip the bottom of this block once collapsing was
+                            // wired up. Only once the user starts collapsing it (headerHeightPx
+                            // drops below the max) do we stop re-measuring and hold a fixed
+                            // height for the shrink animation.
+                            if (headerHeightPx >= headerMaxHeightPx) {
                                 headerMaxHeightPx = size.height.toFloat()
-                                headerHeightPx = size.height.toFloat()
+                                headerHeightPx = headerMaxHeightPx
                             }
                         }
                         .let { base ->
-                            if (headerMaxHeightPx > 0f) {
+                            if (headerHeightPx < headerMaxHeightPx) {
                                 base.height(with(density) { headerHeightPx.toDp() })
                             } else base
                         }
@@ -320,20 +329,20 @@ fun DashboardScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .padding(20.dp)
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Total Travel Distance", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                                Text(distanceUnit.formatKm(totalKm, decimals = 1), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                                Text(distanceUnit.formatKm(totalKm, decimals = 1), fontSize = 26.sp, fontWeight = FontWeight.Bold)
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
 
                                 Text("Distance Travelled Since Refuel", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                                 Text(
                                     text = distanceUnit.formatKm(
                                         distanceKmSinceLastFuelUp(trips, fuelLogs, System.currentTimeMillis())
                                     ),
-                                    fontSize = 16.sp,
+                                    fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -343,16 +352,16 @@ fun DashboardScreen(
                                     text = fuelLogs.averageLitresPerNauticalMile()
                                         ?.let { String.format(Locale.getDefault(), "%.2f L/NM", it) }
                                         ?: "N/A",
-                                    fontSize = 16.sp,
+                                    fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold
                                 )
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
 
                                 Text("Engine Run Time", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                                 Text(
                                     text = formatDuration(trips.sumOf { it.movingTimeMs }),
-                                    fontSize = 16.sp,
+                                    fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -661,7 +670,7 @@ fun FuelItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(20.dp)
-                    .padding(end = 44.dp)
+                    .padding(top = 24.dp)
             ) {
                 Text(
                     text = dateFormat.format(Date(fuelLog.dateRefuelled)),
@@ -679,58 +688,19 @@ fun FuelItem(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "Average Speed",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = speedUnit.formatKmh(fuelLog.avgSpeedKmhSinceLastFuelUp),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "Top Speed",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = speedUnit.formatKmh(fuelLog.maxSpeedKmhSinceLastFuelUp),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+                Text(
+                    text = "Average Speed",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = speedUnit.formatKmh(fuelLog.avgSpeedKmhSinceLastFuelUp),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Text(
-                    text = "${String.format(Locale.getDefault(), "%.2f", fuelLog.litres)} L @ $${String.format(Locale.getDefault(), "%.2f", fuelLog.pricePerLitre)}/L",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-
-                val nauticalMilesThisFuelUp = DistanceUnit.NM.fromKm(fuelLog.distanceKmSinceLastFuelUp)
-                Text(
-                    text = "${String.format(Locale.getDefault(), "%.1f", nauticalMilesThisFuelUp)} NM this fuel-up",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 44.dp, end = 20.dp)
-            ) {
                 Text(
                     text = "Fuel Economy",
                     style = MaterialTheme.typography.labelMedium,
@@ -739,6 +709,41 @@ fun FuelItem(
                 Text(
                     text = fuelEconomyText,
                     fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "${String.format(Locale.getDefault(), "%.2f", fuelLog.litres)} L @ $${String.format(Locale.getDefault(), "%.2f", fuelLog.pricePerLitre)}/L",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                val nauticalMilesThisFuelUp = DistanceUnit.NM.fromKm(fuelLog.distanceKmSinceLastFuelUp)
+                Text(
+                    text = "${String.format(Locale.getDefault(), "%.1f", nauticalMilesThisFuelUp)} NM this fuel-up",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 44.dp, end = 4.dp)
+            ) {
+                Text(
+                    text = "Top Speed",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = speedUnit.formatKmh(fuelLog.maxSpeedKmhSinceLastFuelUp),
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -777,14 +782,12 @@ fun TripItem(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
                 Text(
                     text = "Start: ${dateFormat.format(Date(trip.startTimestamp))}",
                     style = MaterialTheme.typography.labelMedium,
@@ -799,6 +802,11 @@ fun TripItem(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
+                    text = "Total Distance Traveled",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray
+                )
+                Text(
                     text = distanceUnit.formatKm(trip.distanceKm),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
@@ -806,61 +814,64 @@ fun TripItem(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "Top Speed",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = speedUnit.formatKmh(trip.maxSpeedKmh),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "Average Speed",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = speedUnit.formatKmh(trip.avgSpeedKmh),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "Time Underway",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = formatDuration(trip.movingTimeMs),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+                Text(
+                    text = "Average Speed",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = speedUnit.formatKmh(trip.avgSpeedKmh),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Time Underway",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = formatDuration(trip.movingTimeMs),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = "${trip.startAddress} → ${trip.endAddress}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 44.dp, end = 4.dp)
+            ) {
+                Text(
+                    text = "Top Speed",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = speedUnit.formatKmh(trip.maxSpeedKmh),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
             IconButton(
                 onClick = onDelete,
-                modifier = Modifier.align(Alignment.Top)
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 4.dp, end = 4.dp)
             ) {
                 Text("🗑", fontSize = 16.sp)
             }
