@@ -792,12 +792,14 @@ fun TripItem(
                 Text(
                     text = "Start: ${dateFormat.format(Date(trip.startTimestamp))}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray
+                    fontSize = 16.sp,
+                    color = Color.White
                 )
                 Text(
                     text = "Stop: ${dateFormat.format(Date(trip.endTimestamp))}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray
+                    fontSize = 16.sp,
+                    color = Color.White
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -841,7 +843,7 @@ fun TripItem(
                 horizontalAlignment = Alignment.End,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 44.dp, end = 4.dp)
+                    .padding(top = 64.dp, end = 4.dp)
             ) {
                 Text(
                     text = "Top Speed",
