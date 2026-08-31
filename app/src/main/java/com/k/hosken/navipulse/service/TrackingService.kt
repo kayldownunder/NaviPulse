@@ -52,10 +52,10 @@ class TrackingService : Service() {
         // jitter while stationary (parked, idling at lights), not real movement.
         private const val MIN_MOVEMENT_METERS = 5f
 
-        // Speed readings below this are treated as "not underway" — 2 knots, the
+        // Speed readings below this are treated as "not underway" — 1.5 knots, the
         // conventional threshold below which a vessel's motion is dock drift/current
         // rather than real travel — and excluded from the moving-average speed calculation.
-        private const val MIN_MOVING_SPEED_KMH = 3.704
+        private const val MIN_MOVING_SPEED_KMH = 2.778
 
         private val _isTracking = MutableStateFlow(false)
         val isTracking: StateFlow<Boolean> = _isTracking.asStateFlow()
@@ -69,8 +69,12 @@ class TrackingService : Service() {
         private val _currentSpeedKmh = MutableStateFlow(0.0)
         val currentSpeedKmh: StateFlow<Double> = _currentSpeedKmh.asStateFlow()
 
+        // Highest speed reading seen so far during the trip in progress.
+        private val _currentTripMaxSpeedKmh = MutableStateFlow(0.0)
+        val currentTripMaxSpeedKmh: StateFlow<Double> = _currentTripMaxSpeedKmh.asStateFlow()
+
         // Moving-average speed of the trip in progress, counting only time spent above
-        // MIN_MOVING_SPEED_KMH (2 knots) — i.e. actually underway, not idling/drifting.
+        // MIN_MOVING_SPEED_KMH (1.5 knots) — i.e. actually underway, not idling/drifting.
         private val _currentTripAvgSpeedKmh = MutableStateFlow(0.0)
         val currentTripAvgSpeedKmh: StateFlow<Double> = _currentTripAvgSpeedKmh.asStateFlow()
 
@@ -149,7 +153,10 @@ class TrackingService : Service() {
     /** Folds one GPS speed reading into the current/max/moving-average trip stats. */
     private fun recordSpeedSample(speedKmh: Double, sampleTimeMs: Long) {
         _currentSpeedKmh.value = speedKmh
-        if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh
+        if (speedKmh > maxSpeedKmh) {
+            maxSpeedKmh = speedKmh
+            _currentTripMaxSpeedKmh.value = maxSpeedKmh
+        }
 
         if (lastSpeedSampleTimeMs != 0L) {
             val dt = sampleTimeMs - lastSpeedSampleTimeMs
@@ -176,6 +183,7 @@ class TrackingService : Service() {
         _totalDistanceKm.value = 0.0
         _elapsedTimeMs.value = 0L
         _currentSpeedKmh.value = 0.0
+        _currentTripMaxSpeedKmh.value = 0.0
         _currentTripAvgSpeedKmh.value = 0.0
         _engineRunTimeMs.value = 0L
         _recordedPoints.value = emptyList()

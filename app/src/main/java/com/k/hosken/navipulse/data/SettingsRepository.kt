@@ -53,8 +53,7 @@ enum class AppTextSize(val sp: Int) {
     SIZE_16(16),
     SIZE_18(18),
     SIZE_20(20),
-    SIZE_24(24),
-    SIZE_28(28);
+    SIZE_24(24);
 
     val label: String get() = "${sp}sp"
 
@@ -99,6 +98,7 @@ class SettingsRepository(private val context: Context) {
         val APP_FONT = stringPreferencesKey("app_font")
         val APP_TEXT_COLOR = stringPreferencesKey("app_text_color")
         val APP_TEXT_SIZE = stringPreferencesKey("app_text_size")
+        val APP_TITLE_TEXT_SIZE = stringPreferencesKey("app_title_text_size")
         val TIME_ZONE_ID = stringPreferencesKey("time_zone_id")
     }
 
@@ -121,8 +121,13 @@ class SettingsRepository(private val context: Context) {
     val textColor: Flow<AppTextColor> = context.settingsDataStore.data
         .map { it.toEnum(Keys.APP_TEXT_COLOR, AppTextColor.DEFAULT) }
 
+    /** Size applied to numerical values shown on the dashboard (front page). */
     val textSize: Flow<AppTextSize> = context.settingsDataStore.data
         .map { it.toEnum(Keys.APP_TEXT_SIZE, AppTextSize.DEFAULT) }
+
+    /** Size applied to the field titles/labels on the dashboard (front page). */
+    val titleTextSize: Flow<AppTextSize> = context.settingsDataStore.data
+        .map { it.toEnum(Keys.APP_TITLE_TEXT_SIZE, AppTextSize.DEFAULT) }
 
     /** IANA time zone ID used to display dates/times, e.g. "Australia/Sydney". */
     val timeZoneId: Flow<String> = context.settingsDataStore.data
@@ -156,6 +161,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setTextSize(size: AppTextSize) {
         context.settingsDataStore.edit { it[Keys.APP_TEXT_SIZE] = size.name }
+    }
+
+    suspend fun setTitleTextSize(size: AppTextSize) {
+        context.settingsDataStore.edit { it[Keys.APP_TITLE_TEXT_SIZE] = size.name }
     }
 
     suspend fun setTimeZoneId(id: String) {

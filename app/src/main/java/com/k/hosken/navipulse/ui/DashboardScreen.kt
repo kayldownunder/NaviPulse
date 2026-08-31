@@ -88,6 +88,7 @@ import com.k.hosken.navipulse.data.formatKm
 import com.k.hosken.navipulse.data.formatKmh
 import com.k.hosken.navipulse.data.fromKm
 import com.k.hosken.navipulse.data.litresPerNauticalMile
+import com.k.hosken.navipulse.data.movingTimeMsSinceLastFuelUp
 import com.k.hosken.navipulse.util.PermissionUtils
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -107,6 +108,7 @@ fun DashboardScreen(
     val totalDistance by viewModel.totalDistanceKm.collectAsState()
     val elapsedTime by viewModel.elapsedTimeMs.collectAsState()
     val currentSpeed by viewModel.currentSpeedKmh.collectAsState()
+    val currentTripMaxSpeed by viewModel.currentTripMaxSpeedKmh.collectAsState()
     val currentTripAvgSpeed by viewModel.currentTripAvgSpeedKmh.collectAsState()
     val engineRunTime by viewModel.engineRunTimeMs.collectAsState()
     val trips by viewModel.allTrips.collectAsState()
@@ -115,6 +117,10 @@ fun DashboardScreen(
     val speedUnit by viewModel.speedUnit.collectAsState()
     val backgroundImagePath by viewModel.backgroundImagePath.collectAsState()
     val timeZoneId by viewModel.timeZoneId.collectAsState()
+    val titleTextSize by viewModel.titleTextSize.collectAsState()
+    val valueTextSize by viewModel.valueTextSize.collectAsState()
+    val titleFontSize = titleTextSize.sp.sp
+    val valueFontSize = valueTextSize.sp.sp
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -326,42 +332,83 @@ fun DashboardScreen(
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(20.dp)
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Total Travel Distance", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                                Text(distanceUnit.formatKm(totalKm, decimals = 1), fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Total Travel Distance", style = MaterialTheme.typography.labelMedium, fontSize = titleFontSize, color = Color.Gray)
+                                Text(distanceUnit.formatKm(totalKm, decimals = 1), fontSize = valueFontSize, fontWeight = FontWeight.Bold)
+                            }
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                                Text("Distance Travelled Since Refuel", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Total Engine Run Time", style = MaterialTheme.typography.labelMedium, fontSize = titleFontSize, color = Color.Gray)
+                                Text(
+                                    text = formatDuration(trips.sumOf { it.movingTimeMs }),
+                                    fontSize = valueFontSize,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Engine Run Time Since Refuel", style = MaterialTheme.typography.labelMedium, fontSize = titleFontSize, color = Color.Gray)
+                                Text(
+                                    text = formatDuration(
+                                        movingTimeMsSinceLastFuelUp(trips, fuelLogs, System.currentTimeMillis()) +
+                                            (if (isTracking) engineRunTime else 0L)
+                                    ),
+                                    fontSize = valueFontSize,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Distance Travelled Since Refuel", style = MaterialTheme.typography.labelMedium, fontSize = titleFontSize, color = Color.Gray)
                                 Text(
                                     text = distanceUnit.formatKm(
                                         distanceKmSinceLastFuelUp(trips, fuelLogs, System.currentTimeMillis())
                                     ),
-                                    fontSize = 18.sp,
+                                    fontSize = valueFontSize,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text("Average Fuel Economy", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Average Fuel Economy", style = MaterialTheme.typography.labelMedium, fontSize = titleFontSize, color = Color.Gray)
                                 Text(
                                     text = fuelLogs.averageLitresPerNauticalMile()
                                         ?.let { String.format(Locale.getDefault(), "%.2f L/NM", it) }
                                         ?: "N/A",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                Text("Engine Run Time", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                                Text(
-                                    text = formatDuration(trips.sumOf { it.movingTimeMs }),
-                                    fontSize = 18.sp,
+                                    fontSize = valueFontSize,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -380,39 +427,33 @@ fun DashboardScreen(
                                     .padding(12.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text(
-                                    text = distanceUnit.formatKm(totalDistance),
-                                    fontSize = 28.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column {
                                         Text(
-                                            text = "Time Elapsed",
+                                            text = "Total Distance Traveled",
                                             style = MaterialTheme.typography.labelMedium,
+                                            fontSize = titleFontSize,
                                             color = Color.Gray
                                         )
                                         Text(
-                                            text = formatDuration(elapsedTime),
-                                            fontSize = 16.sp,
+                                            text = distanceUnit.formatKm(totalDistance),
+                                            fontSize = valueFontSize,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
-                                            text = "Current Speed",
+                                            text = "Top Speed",
                                             style = MaterialTheme.typography.labelMedium,
+                                            fontSize = titleFontSize,
                                             color = Color.Gray
                                         )
                                         Text(
-                                            text = speedUnit.formatKmh(currentSpeed),
-                                            fontSize = 16.sp,
+                                            text = speedUnit.formatKmh(currentTripMaxSpeed),
+                                            fontSize = valueFontSize,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -426,25 +467,61 @@ fun DashboardScreen(
                                 ) {
                                     Column {
                                         Text(
-                                            text = "Current Trip Average Speed",
+                                            text = "Time Elapsed",
                                             style = MaterialTheme.typography.labelMedium,
+                                            fontSize = titleFontSize,
                                             color = Color.Gray
                                         )
                                         Text(
-                                            text = speedUnit.formatKmh(currentTripAvgSpeed),
-                                            fontSize = 16.sp,
+                                            text = formatDuration(elapsedTime),
+                                            fontSize = valueFontSize,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
-                                            text = "Engine Run Time",
+                                            text = "Current Speed",
                                             style = MaterialTheme.typography.labelMedium,
+                                            fontSize = titleFontSize,
+                                            color = Color.Gray
+                                        )
+                                        Text(
+                                            text = speedUnit.formatKmh(currentSpeed),
+                                            fontSize = valueFontSize,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "Average Speed",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontSize = titleFontSize,
+                                            color = Color.Gray
+                                        )
+                                        Text(
+                                            text = speedUnit.formatKmh(currentTripAvgSpeed),
+                                            fontSize = valueFontSize,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = "Time Underway",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontSize = titleFontSize,
                                             color = Color.Gray
                                         )
                                         Text(
                                             text = formatDuration(engineRunTime),
-                                            fontSize = 16.sp,
+                                            fontSize = valueFontSize,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }

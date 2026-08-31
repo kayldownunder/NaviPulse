@@ -63,12 +63,14 @@ fun FontsScreen(
     // navigates back, so picking through options doesn't commit until they're done.
     var draftFont by remember { mutableStateOf(viewModel.appFont.value) }
     var draftColor by remember { mutableStateOf(viewModel.textColor.value) }
-    var draftSize by remember { mutableStateOf(viewModel.textSize.value) }
+    var draftValueSize by remember { mutableStateOf(viewModel.textSize.value) }
+    var draftTitleSize by remember { mutableStateOf(viewModel.titleTextSize.value) }
 
     val saveAndGoBack: () -> Unit = {
         viewModel.setAppFont(draftFont)
         viewModel.setTextColor(draftColor)
-        viewModel.setTextSize(draftSize)
+        viewModel.setTextSize(draftValueSize)
+        viewModel.setTitleTextSize(draftTitleSize)
         onBackClicked()
     }
 
@@ -135,20 +137,26 @@ fun FontsScreen(
                 )
             }
 
-            // Sample Message preview - updates live as the drafts below change.
-            Box(
+            // Sample title/value preview - updates live as the drafts below change.
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color.Black.copy(alpha = 0.55f))
                     .padding(20.dp),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Sample Message",
+                    text = "Sample Title",
                     color = if (draftColor == AppTextColor.DEFAULT) Color.White else draftColor.toColor(),
                     fontFamily = draftFont.toFontFamily(),
-                    fontSize = draftSize.sp.sp,
+                    fontSize = draftTitleSize.sp.sp
+                )
+                Text(
+                    text = "Sample Value",
+                    color = if (draftColor == AppTextColor.DEFAULT) Color.White else draftColor.toColor(),
+                    fontFamily = draftFont.toFontFamily(),
+                    fontSize = draftValueSize.sp.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -184,12 +192,25 @@ fun FontsScreen(
 
             SectionContainer {
                 DropdownSection(
-                    label = "Text Size",
-                    selectedLabel = draftSize.label,
+                    label = "Title Text Size",
+                    selectedLabel = draftTitleSize.label,
                     options = AppTextSize.entries,
                     optionLabel = { it.label },
-                    isSelected = { it == draftSize },
-                    onSelect = { draftSize = it }
+                    isSelected = { it == draftTitleSize },
+                    onSelect = { draftTitleSize = it }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            SectionContainer {
+                DropdownSection(
+                    label = "Value Text Size",
+                    selectedLabel = draftValueSize.label,
+                    options = AppTextSize.entries,
+                    optionLabel = { it.label },
+                    isSelected = { it == draftValueSize },
+                    onSelect = { draftValueSize = it }
                 )
             }
 

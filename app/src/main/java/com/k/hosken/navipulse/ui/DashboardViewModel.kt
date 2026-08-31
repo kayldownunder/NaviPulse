@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import com.k.hosken.navipulse.data.AppDatabase
+import com.k.hosken.navipulse.data.AppTextSize
 import com.k.hosken.navipulse.data.DistanceUnit
 import com.k.hosken.navipulse.data.FuelLog
 import com.k.hosken.navipulse.data.SettingsRepository
@@ -54,6 +55,20 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             initialValue = java.util.TimeZone.getDefault().id
         )
 
+    val titleTextSize: StateFlow<AppTextSize> = settingsRepository.titleTextSize
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AppTextSize.DEFAULT
+        )
+
+    val valueTextSize: StateFlow<AppTextSize> = settingsRepository.textSize
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AppTextSize.DEFAULT
+        )
+
     val allTrips: StateFlow<List<TripLog>> = db.tripDao().getAllTrips()
         .stateIn(
             scope = viewModelScope,
@@ -72,6 +87,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     val totalDistanceKm: StateFlow<Double> = TrackingService.totalDistanceKm
     val elapsedTimeMs: StateFlow<Long> = TrackingService.elapsedTimeMs
     val currentSpeedKmh: StateFlow<Double> = TrackingService.currentSpeedKmh
+    val currentTripMaxSpeedKmh: StateFlow<Double> = TrackingService.currentTripMaxSpeedKmh
     val currentTripAvgSpeedKmh: StateFlow<Double> = TrackingService.currentTripAvgSpeedKmh
     val engineRunTimeMs: StateFlow<Long> = TrackingService.engineRunTimeMs
     val livePoints: StateFlow<List<LatLng>> = TrackingService.recordedPoints

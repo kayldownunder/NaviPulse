@@ -47,6 +47,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val textSize: StateFlow<AppTextSize> = repository.textSize
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTextSize.DEFAULT)
 
+    val titleTextSize: StateFlow<AppTextSize> = repository.titleTextSize
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTextSize.DEFAULT)
+
     val timeZoneId: StateFlow<String> = repository.timeZoneId
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), java.util.TimeZone.getDefault().id)
 
@@ -72,6 +75,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setTextSize(size: AppTextSize) {
         viewModelScope.launch { repository.setTextSize(size) }
+    }
+
+    fun setTitleTextSize(size: AppTextSize) {
+        viewModelScope.launch { repository.setTitleTextSize(size) }
     }
 
     fun setTimeZoneId(id: String) {

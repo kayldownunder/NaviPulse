@@ -36,6 +36,14 @@ fun distanceKmSinceLastFuelUp(trips: List<TripLog>, fuelLogs: List<FuelLog>, dat
 }
 
 /**
+ * Sums trip moving time (ms) logged between the previous fuel-up (if any) and [dateRefuelled] —
+ * i.e. how long the engine ran on the tank being replaced.
+ */
+fun movingTimeMsSinceLastFuelUp(trips: List<TripLog>, fuelLogs: List<FuelLog>, dateRefuelled: Long): Long {
+    return tripsSinceLastFuelUp(trips, fuelLogs, dateRefuelled).sumOf { it.movingTimeMs }
+}
+
+/**
  * Average speed (km/h) across trips logged on the tank being replaced, counting only time the
  * vessel was underway (above the minimum-moving-speed threshold) — not idle/stationary time.
  */
