@@ -66,9 +66,8 @@ import androidx.compose.ui.unit.sp
 import com.k.hosken.navipulse.R
 import com.k.hosken.navipulse.util.timeZoneOptions
 
-/** GitHub source is public so this link resolves without requiring the reader to sign in. */
-private const val PRIVACY_POLICY_URL =
-    "https://github.com/kayldownunder/NaviPulse/blob/master/PRIVACY.md"
+/** Served by GitHub Pages from index.html in the (public) NaviPulse repo. */
+private const val PRIVACY_POLICY_URL = "https://kayldownunder.github.io/NaviPulse/"
 
 @Composable
 fun SettingsScreen(
