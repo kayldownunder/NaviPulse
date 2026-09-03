@@ -297,53 +297,57 @@ fun DashboardScreen(
                         },
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Header image (edge-to-edge, no horizontal padding)
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        val customBackground = remember(backgroundImagePath) {
-                            backgroundImagePath?.let { path -> BitmapFactory.decodeFile(path)?.asImageBitmap() }
-                        }
-                        if (customBackground != null) {
-                            Image(
-                                bitmap = customBackground,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.matchParentSize()
-                            )
-                        } else {
-                            Image(
-                                painter = painterResource(R.drawable.dashboard_background_default),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.matchParentSize()
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(Color.Black.copy(alpha = 0.45f))
-                        )
-                        CompositionLocalProvider(LocalContentColor provides Color.White) {
-                            Column(
+                    // Header image (edge-to-edge, no horizontal padding) - hidden while logging
+                    // a fuel-up so the entry form sits at the very top of the screen instead of
+                    // being pushed down below it, keeping it clear of the on-screen keyboard.
+                    AnimatedVisibility(visible = !showFuelUpDialog) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            val customBackground = remember(backgroundImagePath) {
+                                backgroundImagePath?.let { path -> BitmapFactory.decodeFile(path)?.asImageBitmap() }
+                            }
+                            if (customBackground != null) {
+                                Image(
+                                    bitmap = customBackground,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.matchParentSize()
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(R.drawable.dashboard_background_default),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.matchParentSize()
+                                )
+                            }
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .windowInsetsPadding(WindowInsets.statusBars)
-                                    .padding(horizontal = 16.dp)
-                                    .padding(top = 12.dp, bottom = 16.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    .matchParentSize()
+                                    .background(Color.Black.copy(alpha = 0.45f))
+                            )
+                            CompositionLocalProvider(LocalContentColor provides Color.White) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .windowInsetsPadding(WindowInsets.statusBars)
+                                        .padding(horizontal = 16.dp)
+                                        .padding(top = 12.dp, bottom = 16.dp)
                                 ) {
-                                    Text("NaviPulse", fontWeight = FontWeight.Bold, fontSize = 30.sp)
-                                    IconButton(onClick = onSettingsClicked) {
-                                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("NaviPulse", fontWeight = FontWeight.Bold, fontSize = 30.sp)
+                                        IconButton(onClick = onSettingsClicked) {
+                                            Icon(Icons.Default.Settings, contentDescription = "Settings")
+                                        }
                                     }
+                                    // Keeps the header/background image the same height it was when
+                                    // the Start Trip/Fuel Up/Export buttons lived here, now that
+                                    // they've moved to the bottom bar.
+                                    Spacer(modifier = Modifier.height(89.dp))
                                 }
-                                // Keeps the header/background image the same height it was when
-                                // the Start Trip/Fuel Up/Export buttons lived here, now that
-                                // they've moved to the bottom bar.
-                                Spacer(modifier = Modifier.height(89.dp))
                             }
                         }
                     }
@@ -661,7 +665,7 @@ fun FuelUpCard(
     var priceText by rememberSaveable { mutableStateOf("") }
     val priceFocusRequester = remember { FocusRequester() }
     var priceFocused by remember { mutableStateOf(false) }
-    val numberFieldFontSize = (fontSize.value - 2f).sp
+    val numberFieldFontSize = (fontSize.value + 2f).sp
 
     val litres = litresText.toDoubleOrNull()
     val pricePerLitre = priceText.toDoubleOrNull()
@@ -751,8 +755,8 @@ fun FuelUpCard(
                     textStyle = LocalTextStyle.current.copy(fontSize = numberFieldFontSize, textAlign = TextAlign.End),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier
-                        .width(64.dp)
-                        .height(42.dp)
+                        .width(130.dp)
+                        .height(60.dp)
                 )
             }
             Row(
@@ -773,8 +777,8 @@ fun FuelUpCard(
                     textStyle = LocalTextStyle.current.copy(fontSize = numberFieldFontSize, textAlign = TextAlign.End),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier
-                        .width(80.dp)
-                        .height(42.dp)
+                        .width(155.dp)
+                        .height(60.dp)
                         .focusRequester(priceFocusRequester)
                         .onFocusChanged { priceFocused = it.isFocused }
                 )
