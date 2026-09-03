@@ -79,6 +79,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.k.hosken.navipulse.R
 import com.k.hosken.navipulse.data.DistanceUnit
@@ -604,7 +605,10 @@ fun DashboardScreen(
                                 timeZoneId = timeZoneId,
                                 titleFontSize = titleFontSize,
                                 valueFontSize = titleFontSize,
-                                onDelete = { viewModel.deleteFuelLog(item.fuelLog.id) }
+                                onDelete = { viewModel.deleteFuelLog(item.fuelLog.id) },
+                                onEdit = { dateRefuelled, litres, pricePerLitre ->
+                                    viewModel.updateFuelLog(item.fuelLog.id, dateRefuelled, litres, pricePerLitre)
+                                }
                             )
                         }
                     }
@@ -802,8 +806,11 @@ fun FuelItem(
     timeZoneId: String,
     titleFontSize: androidx.compose.ui.unit.TextUnit,
     valueFontSize: androidx.compose.ui.unit.TextUnit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: (dateRefuelled: Long, litres: Double, pricePerLitre: Double) -> Unit
 ) {
+    var showEditDialog by remember { mutableStateOf(false) }
+
     val dateFormat = remember(timeZoneId) {
         SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).apply {
             timeZone = TimeZone.getTimeZone(timeZoneId)
@@ -918,13 +925,136 @@ fun FuelItem(
             }
 
             IconButton(
-                onClick = onDelete,
+                onClick = { showEditDialog = true },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 4.dp, end = 4.dp)
             ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Edit fuel log",
+                    tint = Color.White
+                )
+            }
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(bottom = 4.dp, start = 4.dp)
+            ) {
                 Text("🗑", fontSize = 16.sp)
             }
+        }
+    }
+
+    if (showEditDialog) {
+        EditFuelLogDialog(
+            fuelLog = fuelLog,
+            onDismiss = { showEditDialog = false },
+            onSave = { dateRefuelled, litres, pricePerLitre ->
+                onEdit(dateRefuelled, litres, pricePerLitre)
+                showEditDialog = false
+            }
+        )
+    }
+}
+
+/** Lets the user correct the fields they entered when a fuel-up was originally logged. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditFuelLogDialog(
+    fuelLog: FuelLog,
+    onDismiss: () -> Unit,
+    onSave: (dateRefuelled: Long, litres: Double, pricePerLitre: Double) -> Unit
+) {
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = fuelLog.dateRefuelled)
+    var showDatePicker by remember { mutableStateOf(false) }
+    var litresText by rememberSaveable { mutableStateOf(fuelLog.litres.toString()) }
+    var priceText by rememberSaveable { mutableStateOf(fuelLog.pricePerLitre.toString()) }
+
+    val litres = litresText.toDoubleOrNull()
+    val pricePerLitre = priceText.toDoubleOrNull()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Edit Fuel Up",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                OutlinedTextField(
+                    value = datePickerState.selectedDateMillis?.let { dateFormat.format(Date(it)) }
+                        ?: dateFormat.format(Date(fuelLog.dateRefuelled)),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Date Re-fuelled") },
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(Icons.Default.CalendarMonth, contentDescription = "Select date")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = litresText,
+                    onValueChange = { litresText = it },
+                    label = { Text("Litres of Unleaded") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = priceText,
+                    onValueChange = { priceText = it },
+                    label = { Text("Price Per Litre") },
+                    leadingIcon = { Text("$") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) { Text("Cancel") }
+                    Button(
+                        enabled = litres != null && litres > 0 && pricePerLitre != null && pricePerLitre > 0,
+                        onClick = {
+                            val dateMillis = datePickerState.selectedDateMillis ?: fuelLog.dateRefuelled
+                            onSave(dateMillis, litres!!, pricePerLitre!!)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Save") }
+                }
+            }
+        }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

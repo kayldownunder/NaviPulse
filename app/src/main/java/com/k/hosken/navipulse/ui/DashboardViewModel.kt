@@ -165,4 +165,21 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             db.fuelDao().deleteFuelLogById(fuelLogId)
         }
     }
+
+    /** Edits the fields the user originally entered - the since-last-fuel-up trip stats and
+     * [FuelLog.createdAt] (which determines log ordering) are left as they were. */
+    fun updateFuelLog(fuelLogId: Long, dateRefuelled: Long, litres: Double, pricePerLitre: Double) {
+        viewModelScope.launch {
+            val existing = db.fuelDao().getAllFuelLogs().first().firstOrNull { it.id == fuelLogId }
+                ?: return@launch
+            db.fuelDao().updateFuelLog(
+                existing.copy(
+                    dateRefuelled = dateRefuelled,
+                    litres = litres,
+                    pricePerLitre = pricePerLitre,
+                    totalPrice = litres * pricePerLitre
+                )
+            )
+        }
+    }
 }

@@ -4,12 +4,16 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FuelDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFuelLog(fuelLog: FuelLog)
+
+    @Update
+    suspend fun updateFuelLog(fuelLog: FuelLog)
 
     @Query("SELECT * FROM fuel_logs ORDER BY createdAt DESC")
     fun getAllFuelLogs(): Flow<List<FuelLog>>
