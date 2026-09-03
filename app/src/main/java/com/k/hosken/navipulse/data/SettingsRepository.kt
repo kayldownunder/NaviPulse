@@ -54,8 +54,7 @@ enum class AppTextSize(val sp: Int) {
     SIZE_16(16),
     SIZE_17(17),
     SIZE_18(18),
-    SIZE_20(20),
-    SIZE_22(22);
+    SIZE_20(20);
 
     val label: String get() = "${sp}sp"
 
@@ -72,8 +71,7 @@ enum class AppSummaryTextSize(val sp: Int) {
     SIZE_16(16),
     SIZE_17(17),
     SIZE_18(18),
-    SIZE_20(20),
-    SIZE_22(22);
+    SIZE_20(20);
 
     val label: String get() = "${sp}sp"
 
