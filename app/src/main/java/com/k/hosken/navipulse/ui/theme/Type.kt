@@ -23,23 +23,10 @@ private fun googleFontFamily(name: String): FontFamily = FontFamily(
     Font(googleFont = GoogleFont(name), fontProvider = googleFontProvider)
 )
 
-fun AppFont.toFontFamily(): FontFamily = when (this) {
-    AppFont.ROBOTO -> googleFontFamily("Roboto")
-    AppFont.OPEN_SANS -> googleFontFamily("Open Sans")
-    AppFont.LATO -> googleFontFamily("Lato")
-    AppFont.MONTSERRAT -> googleFontFamily("Montserrat")
-    AppFont.OSWALD -> googleFontFamily("Oswald")
-    AppFont.RALEWAY -> googleFontFamily("Raleway")
-    AppFont.POPPINS -> googleFontFamily("Poppins")
-    AppFont.MERRIWEATHER -> googleFontFamily("Merriweather")
-    AppFont.NUNITO -> googleFontFamily("Nunito")
-    AppFont.UBUNTU -> googleFontFamily("Ubuntu")
-    AppFont.PT_SANS -> googleFontFamily("PT Sans")
-    AppFont.PLAYFAIR_DISPLAY -> googleFontFamily("Playfair Display")
-    AppFont.INTER -> googleFontFamily("Inter")
-    AppFont.QUICKSAND -> googleFontFamily("Quicksand")
-    AppFont.DANCING_SCRIPT -> googleFontFamily("Dancing Script")
-}
+/** [AppFont.label] is already the exact Google Fonts family name for every entry but
+ * [AppFont.SYSTEM_DEFAULT], which opts out of a downloaded font entirely. */
+fun AppFont.toFontFamily(): FontFamily =
+    if (this == AppFont.SYSTEM_DEFAULT) FontFamily.Default else googleFontFamily(label)
 
 fun AppTextColor.toColor(): Color = when (this) {
     AppTextColor.DEFAULT -> Color.Unspecified

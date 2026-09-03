@@ -15,22 +15,55 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 
 enum class DistanceUnit(val label: String) { KM("km"), NM("NM") }
 enum class SpeedUnit(val label: String) { KMH("km/hr"), KTS("kts") }
+/** Same font list offered in the DJ Kayl music player app's Font Settings, so both apps'
+ * font pickers stay in sync. */
 enum class AppFont(val label: String) {
+    SYSTEM_DEFAULT("System Default"),
+    // Everyday text faces
     ROBOTO("Roboto"),
-    OPEN_SANS("Open Sans"),
-    LATO("Lato"),
     MONTSERRAT("Montserrat"),
     OSWALD("Oswald"),
-    RALEWAY("Raleway"),
     POPPINS("Poppins"),
+    RALEWAY("Raleway"),
+    RUBIK("Rubik"),
     MERRIWEATHER("Merriweather"),
-    NUNITO("Nunito"),
-    UBUNTU("Ubuntu"),
-    PT_SANS("PT Sans"),
+    LIBRE_BASKERVILLE("Libre Baskerville"),
     PLAYFAIR_DISPLAY("Playfair Display"),
-    INTER("Inter"),
-    QUICKSAND("Quicksand"),
-    DANCING_SCRIPT("Dancing Script")
+    ZILLA_SLAB("Zilla Slab"),
+    // Bold / decorative display faces
+    BEBAS_NEUE("Bebas Neue"),
+    ANTON("Anton"),
+    ARCHIVO_BLACK("Archivo Black"),
+    RUBIK_MONO_ONE("Rubik Mono One"),
+    RIGHTEOUS("Righteous"),
+    BUNGEE("Bungee"),
+    FREDOKA("Fredoka"),
+    BALOO_2("Baloo 2"),
+    PASSION_ONE("Passion One"),
+    ABRIL_FATFACE("Abril Fatface"),
+    CINZEL("Cinzel"),
+    TEKO("Teko"),
+    YANONE_KAFFEESATZ("Yanone Kaffeesatz"),
+    RAJDHANI("Rajdhani"),
+    ORBITRON("Orbitron"),
+    EXO_2("Exo 2"),
+    SPECIAL_ELITE("Special Elite"),
+    // Script / handwriting display faces
+    PACIFICO("Pacifico"),
+    LOBSTER("Lobster"),
+    DANCING_SCRIPT("Dancing Script"),
+    GREAT_VIBES("Great Vibes"),
+    SACRAMENTO("Sacramento"),
+    SATISFY("Satisfy"),
+    CAVEAT("Caveat"),
+    PERMANENT_MARKER("Permanent Marker"),
+    SHRIKHAND("Shrikhand"),
+    AMATIC_SC("Amatic SC"),
+    KALAM("Kalam"),
+    HANDLEE("Handlee"),
+    // Rounded / geometric
+    JOSEFIN_SANS("Josefin Sans"),
+    QUICKSAND("Quicksand")
 }
 
 enum class AppTextColor(val label: String) {

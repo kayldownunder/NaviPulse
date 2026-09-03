@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.rememberScrollableState
 import androidx.compose.foundation.gestures.scrollable
@@ -29,6 +30,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -96,6 +101,7 @@ import com.k.hosken.navipulse.data.movingTimeMsSinceLastFuelUp
 import com.k.hosken.navipulse.ui.theme.toFontFamily
 import com.k.hosken.navipulse.util.PermissionUtils
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -620,6 +626,22 @@ fun DashboardScreen(
 }
 
 /**
+ * Today's date as the UTC-midnight millis [DatePickerState] expects. Plain
+ * `System.currentTimeMillis()` is a real instant, and the picker floors it to the UTC calendar
+ * day - in a timezone ahead of UTC (e.g. Perth, +8), that's still "yesterday" in UTC for the
+ * first few hours after local midnight, so the field would show yesterday's date.
+ */
+private fun todayAsPickerMillis(): Long {
+    val today = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    return today.timeInMillis + today.timeZone.getOffset(today.timeInMillis)
+}
+
+/**
  * Inline fuel-up entry form shown in place of the stats summary card while logging a
  * fuel-up (rather than as a popup dialog), so it sits directly under the header image.
  */
@@ -633,10 +655,13 @@ fun FuelUpCard(
     onSave: (dateRefuelled: Long, litres: Double, pricePerLitre: Double) -> Unit
 ) {
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = todayAsPickerMillis())
     var showDatePicker by remember { mutableStateOf(false) }
     var litresText by rememberSaveable { mutableStateOf("") }
     var priceText by rememberSaveable { mutableStateOf("") }
+    val priceFocusRequester = remember { FocusRequester() }
+    var priceFocused by remember { mutableStateOf(false) }
+    val numberFieldFontSize = (fontSize.value - 2f).sp
 
     val litres = litresText.toDoubleOrNull()
     val pricePerLitre = priceText.toDoubleOrNull()
@@ -656,47 +681,104 @@ fun FuelUpCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = "Fuel Up",
-                style = MaterialTheme.typography.titleMedium,
-                fontSize = fontSize,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            OutlinedTextField(
-                value = datePickerState.selectedDateMillis?.let { dateFormat.format(Date(it)) }
-                    ?: dateFormat.format(Date()),
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Date Re-fuelled", fontSize = fontSize) },
-                textStyle = LocalTextStyle.current.copy(fontSize = fontSize),
-                trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Default.CalendarMonth, contentDescription = "Select date")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Fuel Up",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = fontSize,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                TextButton(
+                    onClick = {
+                        if (priceFocused) {
+                            if (litres != null && litres > 0 && pricePerLitre != null && pricePerLitre > 0) {
+                                val dateMillis = datePickerState.selectedDateMillis ?: todayAsPickerMillis()
+                                onSave(dateMillis, litres, pricePerLitre)
+                            }
+                        } else {
+                            priceFocusRequester.requestFocus()
+                        }
                     }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = litresText,
-                onValueChange = { litresText = it },
-                label = { Text("Litres of Unleaded", fontSize = fontSize) },
-                textStyle = LocalTextStyle.current.copy(fontSize = fontSize),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = priceText,
-                onValueChange = { priceText = it },
-                label = { Text("Price Per Litre", fontSize = fontSize) },
-                leadingIcon = { Text("$", fontSize = fontSize) },
-                textStyle = LocalTextStyle.current.copy(fontSize = fontSize),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
-            )
+                ) {
+                    Text(
+                        text = if (priceFocused) "Save" else "Next",
+                        fontSize = fontSize,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showDatePicker = true },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarMonth,
+                    contentDescription = "Select date",
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = datePickerState.selectedDateMillis?.let { dateFormat.format(Date(it)) }
+                        ?: dateFormat.format(Date()),
+                    fontSize = fontSize,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Liters of Unleaded",
+                    fontSize = fontSize,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                OutlinedTextField(
+                    value = litresText,
+                    onValueChange = { litresText = it },
+                    singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = numberFieldFontSize, textAlign = TextAlign.End),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier
+                        .width(64.dp)
+                        .height(42.dp)
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Price Per Liter",
+                    fontSize = fontSize,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                OutlinedTextField(
+                    value = priceText,
+                    onValueChange = { priceText = it },
+                    singleLine = true,
+                    leadingIcon = { Text("$", fontSize = numberFieldFontSize) },
+                    textStyle = LocalTextStyle.current.copy(fontSize = numberFieldFontSize, textAlign = TextAlign.End),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(42.dp)
+                        .focusRequester(priceFocusRequester)
+                        .onFocusChanged { priceFocused = it.isFocused }
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -742,7 +824,7 @@ fun FuelUpCard(
                 Button(
                     enabled = litres != null && litres > 0 && pricePerLitre != null && pricePerLitre > 0,
                     onClick = {
-                        val dateMillis = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+                        val dateMillis = datePickerState.selectedDateMillis ?: todayAsPickerMillis()
                         onSave(dateMillis, litres!!, pricePerLitre!!)
                     },
                     modifier = Modifier.weight(1f)
@@ -940,8 +1022,8 @@ fun FuelItem(
             IconButton(
                 onClick = onDelete,
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(bottom = 4.dp, start = 4.dp)
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 4.dp, end = 4.dp)
             ) {
                 Text("🗑", fontSize = 16.sp)
             }
@@ -1010,14 +1092,14 @@ private fun EditFuelLogDialog(
                 OutlinedTextField(
                     value = litresText,
                     onValueChange = { litresText = it },
-                    label = { Text("Litres of Unleaded") },
+                    label = { Text("Liters of Unleaded") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = priceText,
                     onValueChange = { priceText = it },
-                    label = { Text("Price Per Litre") },
+                    label = { Text("Price Per Liter") },
                     leadingIcon = { Text("$") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
