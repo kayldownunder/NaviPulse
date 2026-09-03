@@ -11,7 +11,7 @@ interface FuelDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFuelLog(fuelLog: FuelLog)
 
-    @Query("SELECT * FROM fuel_logs ORDER BY dateRefuelled DESC")
+    @Query("SELECT * FROM fuel_logs ORDER BY createdAt DESC")
     fun getAllFuelLogs(): Flow<List<FuelLog>>
 
     @Query("DELETE FROM fuel_logs WHERE id = :id")

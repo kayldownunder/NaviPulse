@@ -34,8 +34,7 @@ import com.k.hosken.navipulse.util.PdfExporter
 @Composable
 fun ExportScreen(
     viewModel: DashboardViewModel,
-    onBackClicked: () -> Unit,
-    onMapExportClicked: () -> Unit
+    onBackClicked: () -> Unit
 ) {
     val context = LocalContext.current
     val trips by viewModel.allTrips.collectAsState()
@@ -82,14 +81,6 @@ fun ExportScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Text("Export PDF", fontWeight = FontWeight.Bold)
-            }
-            Button(
-                onClick = onMapExportClicked,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                Text("Map Export", fontWeight = FontWeight.Bold)
             }
         }
     }

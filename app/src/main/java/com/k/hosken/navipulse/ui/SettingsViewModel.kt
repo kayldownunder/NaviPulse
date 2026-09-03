@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.k.hosken.navipulse.data.AppDatabase
 import com.k.hosken.navipulse.data.AppFont
+import com.k.hosken.navipulse.data.AppSummaryTextSize
 import com.k.hosken.navipulse.data.AppTextColor
 import com.k.hosken.navipulse.data.AppTextSize
 import com.k.hosken.navipulse.data.DistanceUnit
@@ -39,16 +40,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val appFont: StateFlow<AppFont> = repository.appFont
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppFont.ROBOTO)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppFont.ROBOTO)
 
     val textColor: StateFlow<AppTextColor> = repository.textColor
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTextColor.DEFAULT)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppTextColor.DEFAULT)
 
     val textSize: StateFlow<AppTextSize> = repository.textSize
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTextSize.DEFAULT)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppTextSize.DEFAULT)
 
     val titleTextSize: StateFlow<AppTextSize> = repository.titleTextSize
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTextSize.DEFAULT)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppTextSize.DEFAULT)
+
+    val summaryTextSize: StateFlow<AppSummaryTextSize> = repository.summaryTextSize
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppSummaryTextSize.DEFAULT)
 
     val timeZoneId: StateFlow<String> = repository.timeZoneId
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), java.util.TimeZone.getDefault().id)
@@ -79,6 +83,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setTitleTextSize(size: AppTextSize) {
         viewModelScope.launch { repository.setTitleTextSize(size) }
+    }
+
+    fun setSummaryTextSize(size: AppSummaryTextSize) {
+        viewModelScope.launch { repository.setSummaryTextSize(size) }
     }
 
     fun setTimeZoneId(id: String) {

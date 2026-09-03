@@ -50,15 +50,35 @@ enum class AppTextColor(val label: String) {
 enum class AppTextSize(val sp: Int) {
     SIZE_12(12),
     SIZE_14(14),
+    SIZE_15(15),
     SIZE_16(16),
+    SIZE_17(17),
     SIZE_18(18),
     SIZE_20(20),
-    SIZE_24(24);
+    SIZE_22(22);
 
     val label: String get() = "${sp}sp"
 
     companion object {
         val DEFAULT = SIZE_16
+    }
+}
+
+/** Same size options as [AppTextSize] - used only by the Summary Text Size setting. */
+enum class AppSummaryTextSize(val sp: Int) {
+    SIZE_12(12),
+    SIZE_14(14),
+    SIZE_15(15),
+    SIZE_16(16),
+    SIZE_17(17),
+    SIZE_18(18),
+    SIZE_20(20),
+    SIZE_22(22);
+
+    val label: String get() = "${sp}sp"
+
+    companion object {
+        val DEFAULT = SIZE_15
     }
 }
 
@@ -99,6 +119,7 @@ class SettingsRepository(private val context: Context) {
         val APP_TEXT_COLOR = stringPreferencesKey("app_text_color")
         val APP_TEXT_SIZE = stringPreferencesKey("app_text_size")
         val APP_TITLE_TEXT_SIZE = stringPreferencesKey("app_title_text_size")
+        val APP_SUMMARY_TEXT_SIZE = stringPreferencesKey("app_summary_text_size")
         val TIME_ZONE_ID = stringPreferencesKey("time_zone_id")
     }
 
@@ -128,6 +149,10 @@ class SettingsRepository(private val context: Context) {
     /** Size applied to the field titles/labels on the dashboard (front page). */
     val titleTextSize: Flow<AppTextSize> = context.settingsDataStore.data
         .map { it.toEnum(Keys.APP_TITLE_TEXT_SIZE, AppTextSize.DEFAULT) }
+
+    /** Size applied to all text in the stats summary panel at the top of the dashboard (front page). */
+    val summaryTextSize: Flow<AppSummaryTextSize> = context.settingsDataStore.data
+        .map { it.toEnum(Keys.APP_SUMMARY_TEXT_SIZE, AppSummaryTextSize.DEFAULT) }
 
     /** IANA time zone ID used to display dates/times, e.g. "Australia/Sydney". */
     val timeZoneId: Flow<String> = context.settingsDataStore.data
@@ -165,6 +190,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setTitleTextSize(size: AppTextSize) {
         context.settingsDataStore.edit { it[Keys.APP_TITLE_TEXT_SIZE] = size.name }
+    }
+
+    suspend fun setSummaryTextSize(size: AppSummaryTextSize) {
+        context.settingsDataStore.edit { it[Keys.APP_SUMMARY_TEXT_SIZE] = size.name }
     }
 
     suspend fun setTimeZoneId(id: String) {

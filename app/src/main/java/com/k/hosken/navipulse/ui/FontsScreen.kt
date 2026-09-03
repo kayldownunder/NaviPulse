@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k.hosken.navipulse.R
 import com.k.hosken.navipulse.data.AppFont
+import com.k.hosken.navipulse.data.AppSummaryTextSize
 import com.k.hosken.navipulse.data.AppTextColor
 import com.k.hosken.navipulse.data.AppTextSize
 import com.k.hosken.navipulse.ui.theme.toColor
@@ -65,12 +66,14 @@ fun FontsScreen(
     var draftColor by remember { mutableStateOf(viewModel.textColor.value) }
     var draftValueSize by remember { mutableStateOf(viewModel.textSize.value) }
     var draftTitleSize by remember { mutableStateOf(viewModel.titleTextSize.value) }
+    var draftSummarySize by remember { mutableStateOf(viewModel.summaryTextSize.value) }
 
     val saveAndGoBack: () -> Unit = {
         viewModel.setAppFont(draftFont)
         viewModel.setTextColor(draftColor)
         viewModel.setTextSize(draftValueSize)
         viewModel.setTitleTextSize(draftTitleSize)
+        viewModel.setSummaryTextSize(draftSummarySize)
         onBackClicked()
     }
 
@@ -159,6 +162,12 @@ fun FontsScreen(
                     fontSize = draftValueSize.sp.sp,
                     fontWeight = FontWeight.Bold
                 )
+                Text(
+                    text = "Sample Summary",
+                    color = if (draftColor == AppTextColor.DEFAULT) Color.White else draftColor.toColor(),
+                    fontFamily = draftFont.toFontFamily(),
+                    fontSize = draftSummarySize.sp.sp
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -192,7 +201,20 @@ fun FontsScreen(
 
             SectionContainer {
                 DropdownSection(
-                    label = "Title Text Size",
+                    label = "Summary Text Size",
+                    selectedLabel = draftSummarySize.label,
+                    options = AppSummaryTextSize.entries,
+                    optionLabel = { it.label },
+                    isSelected = { it == draftSummarySize },
+                    onSelect = { draftSummarySize = it }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            SectionContainer {
+                DropdownSection(
+                    label = "Recent Logged Trips",
                     selectedLabel = draftTitleSize.label,
                     options = AppTextSize.entries,
                     optionLabel = { it.label },
@@ -205,7 +227,7 @@ fun FontsScreen(
 
             SectionContainer {
                 DropdownSection(
-                    label = "Value Text Size",
+                    label = "Fuel Up",
                     selectedLabel = draftValueSize.label,
                     options = AppTextSize.entries,
                     optionLabel = { it.label },

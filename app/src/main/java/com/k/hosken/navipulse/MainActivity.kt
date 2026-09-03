@@ -11,11 +11,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.k.hosken.navipulse.ui.BackupScreen
 import com.k.hosken.navipulse.ui.DashboardScreen
 import com.k.hosken.navipulse.ui.DashboardViewModel
 import com.k.hosken.navipulse.ui.ExportScreen
 import com.k.hosken.navipulse.ui.FontsScreen
-import com.k.hosken.navipulse.ui.MapExportScreen
 import com.k.hosken.navipulse.ui.SettingsScreen
 import com.k.hosken.navipulse.ui.SettingsViewModel
 import com.k.hosken.navipulse.ui.TripDetailScreen
@@ -32,7 +32,7 @@ private sealed class Screen {
     data object Units : Screen()
     data object Fonts : Screen()
     data object Export : Screen()
-    data object MapExport : Screen()
+    data object Backup : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -71,13 +71,7 @@ class MainActivity : ComponentActivity() {
 
                     is Screen.Export -> ExportScreen(
                         viewModel = dashboardViewModel,
-                        onBackClicked = { screen = Screen.Dashboard },
-                        onMapExportClicked = { screen = Screen.MapExport }
-                    )
-
-                    is Screen.MapExport -> MapExportScreen(
-                        viewModel = dashboardViewModel,
-                        onBackClicked = { screen = Screen.Export }
+                        onBackClicked = { screen = Screen.Dashboard }
                     )
 
                     is Screen.TripDetail -> TripDetailScreen(
@@ -90,7 +84,8 @@ class MainActivity : ComponentActivity() {
                         viewModel = settingsViewModel,
                         onBackClicked = { screen = Screen.Dashboard },
                         onUnitsClicked = { screen = Screen.Units },
-                        onFontsClicked = { screen = Screen.Fonts }
+                        onFontsClicked = { screen = Screen.Fonts },
+                        onBackupClicked = { screen = Screen.Backup }
                     )
 
                     is Screen.Units -> UnitsScreen(
@@ -99,6 +94,11 @@ class MainActivity : ComponentActivity() {
                     )
 
                     is Screen.Fonts -> FontsScreen(
+                        viewModel = settingsViewModel,
+                        onBackClicked = { screen = Screen.Settings }
+                    )
+
+                    is Screen.Backup -> BackupScreen(
                         viewModel = settingsViewModel,
                         onBackClicked = { screen = Screen.Settings }
                     )

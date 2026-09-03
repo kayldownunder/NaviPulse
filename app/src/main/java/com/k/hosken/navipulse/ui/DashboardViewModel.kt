@@ -6,6 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import com.k.hosken.navipulse.data.AppDatabase
+import com.k.hosken.navipulse.data.AppFont
+import com.k.hosken.navipulse.data.AppSummaryTextSize
 import com.k.hosken.navipulse.data.AppTextSize
 import com.k.hosken.navipulse.data.DistanceUnit
 import com.k.hosken.navipulse.data.FuelLog
@@ -53,6 +55,20 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = java.util.TimeZone.getDefault().id
+        )
+
+    val summaryTextSize: StateFlow<AppSummaryTextSize> = settingsRepository.summaryTextSize
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AppSummaryTextSize.DEFAULT
+        )
+
+    val appFont: StateFlow<AppFont> = settingsRepository.appFont
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AppFont.ROBOTO
         )
 
     val titleTextSize: StateFlow<AppTextSize> = settingsRepository.titleTextSize
@@ -126,15 +142,19 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             val trips = db.tripDao().getAllTrips().first()
             val fuelLogs = db.fuelDao().getAllFuelLogs().first()
+            // Stats use the actual save-time instant, not dateRefuelled (a user-editable,
+            // date-only value), so same-day trips aren't excluded by a too-early cutoff.
+            val createdAt = System.currentTimeMillis()
             db.fuelDao().insertFuelLog(
                 FuelLog(
                     dateRefuelled = dateRefuelled,
                     litres = litres,
                     pricePerLitre = pricePerLitre,
                     totalPrice = litres * pricePerLitre,
-                    distanceKmSinceLastFuelUp = distanceKmSinceLastFuelUp(trips, fuelLogs, dateRefuelled),
-                    avgSpeedKmhSinceLastFuelUp = avgSpeedKmhSinceLastFuelUp(trips, fuelLogs, dateRefuelled),
-                    maxSpeedKmhSinceLastFuelUp = maxSpeedKmhSinceLastFuelUp(trips, fuelLogs, dateRefuelled)
+                    distanceKmSinceLastFuelUp = distanceKmSinceLastFuelUp(trips, fuelLogs, createdAt),
+                    avgSpeedKmhSinceLastFuelUp = avgSpeedKmhSinceLastFuelUp(trips, fuelLogs, createdAt),
+                    maxSpeedKmhSinceLastFuelUp = maxSpeedKmhSinceLastFuelUp(trips, fuelLogs, createdAt),
+                    createdAt = createdAt
                 )
             )
         }

@@ -1,6 +1,8 @@
 package com.k.hosken.navipulse.ui
 
+import android.content.Intent
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -30,8 +32,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Brightness7
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Public
@@ -63,16 +65,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k.hosken.navipulse.R
 import com.k.hosken.navipulse.util.timeZoneOptions
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+
+/** GitHub source is public so this link resolves without requiring the reader to sign in. */
+private const val PRIVACY_POLICY_URL =
+    "https://github.com/kayldownunder/NaviPulse/blob/master/PRIVACY.md"
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBackClicked: () -> Unit,
     onUnitsClicked: () -> Unit,
-    onFontsClicked: () -> Unit
+    onFontsClicked: () -> Unit,
+    onBackupClicked: () -> Unit
 ) {
     val context = LocalContext.current
     val screenOnEnabled by viewModel.screenOnEnabled.collectAsState()
@@ -86,34 +90,6 @@ fun SettingsScreen(
             viewModel.setBackgroundImage(uri) { success ->
                 val message = if (success) "Dashboard background updated" else "Couldn't load that image"
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        if (uri != null) {
-            viewModel.exportBackup(uri) { result ->
-                result.onSuccess { count ->
-                    Toast.makeText(context, "Backed up $count trip(s)", Toast.LENGTH_SHORT).show()
-                }.onFailure {
-                    Toast.makeText(context, "Backup failed: ${it.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            viewModel.importBackup(uri) { result ->
-                result.onSuccess { count ->
-                    Toast.makeText(context, "Restored $count trip(s)", Toast.LENGTH_SHORT).show()
-                }.onFailure {
-                    Toast.makeText(context, "Restore failed: ${it.message}", Toast.LENGTH_LONG).show()
-                }
             }
         }
     }
@@ -291,14 +267,9 @@ fun SettingsScreen(
 
             SettingsSectionContainer {
                 SettingsRow(
-                    icon = Icons.Default.CloudUpload,
-                    label = "Export Backup",
-                    onClick = {
-                        val fileName = "NaviPulse_Backup_${
-                            SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(Date())
-                        }.json"
-                        exportLauncher.launch(fileName)
-                    }
+                    icon = Icons.Default.CloudSync,
+                    label = "Backup",
+                    onClick = onBackupClicked
                 )
             }
 
@@ -306,9 +277,12 @@ fun SettingsScreen(
 
             SettingsSectionContainer {
                 SettingsRow(
-                    icon = Icons.Default.CloudDownload,
-                    label = "Restore Backup",
-                    onClick = { importLauncher.launch(arrayOf("application/json")) }
+                    icon = Icons.Default.Info,
+                    label = "About",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL))
+                        context.startActivity(intent)
+                    }
                 )
             }
 
@@ -318,7 +292,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsSectionContainer(
+internal fun SettingsSectionContainer(
     content: @Composable () -> Unit
 ) {
     Column(
@@ -346,7 +320,7 @@ private fun TimeRegionRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded }
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -416,7 +390,7 @@ private fun TimeRegionRow(
 }
 
 @Composable
-private fun SettingsRow(
+internal fun SettingsRow(
     icon: ImageVector,
     label: String,
     onClick: (() -> Unit)? = null,
@@ -426,7 +400,7 @@ private fun SettingsRow(
         modifier = Modifier
             .fillMaxWidth()
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
