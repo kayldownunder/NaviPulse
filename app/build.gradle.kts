@@ -1,8 +1,26 @@
+import java.io.StringReader
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
+// Release signing credentials live in local.properties (git-ignored):
+//   signing.storeFile=C:/path/to/upload-keystore.jks   (use forward slashes)
+//   signing.storePassword=...
+//   signing.keyAlias=...
+//   signing.keyPassword=...                            (optional, defaults to storePassword)
+val localProperties = Properties().apply {
+    val text = providers.fileContents(rootProject.layout.projectDirectory.file("local.properties")).asText
+    if (text.isPresent) load(StringReader(text.get()))
+}
+val releaseStoreFile = localProperties.getProperty("signing.storeFile")
+val releaseStorePassword = localProperties.getProperty("signing.storePassword")
+val releaseKeyAlias = localProperties.getProperty("signing.keyAlias")
+val releaseKeyPassword = localProperties.getProperty("signing.keyPassword") ?: releaseStorePassword
+val hasReleaseSigning = listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
 
 android {
     namespace = "com.k.hosken.navipulse"
@@ -18,8 +36,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
