@@ -754,9 +754,7 @@ fun FuelUpCard(
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(fontSize = numberFieldFontSize, textAlign = TextAlign.End),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier
-                        .width(130.dp)
-                        .height(60.dp)
+                    modifier = Modifier.width(130.dp)
                 )
             }
             Row(
@@ -778,7 +776,6 @@ fun FuelUpCard(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier
                         .width(155.dp)
-                        .height(60.dp)
                         .focusRequester(priceFocusRequester)
                         .onFocusChanged { priceFocused = it.isFocused }
                 )
