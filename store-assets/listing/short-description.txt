@@ -1,0 +1,1 @@
+Log boat and car trips in knots or km, track fuel use, export to CSV or PDF.

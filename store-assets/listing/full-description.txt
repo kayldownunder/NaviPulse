@@ -1,0 +1,41 @@
+NaviPulse is a simple trip and fuel log for boats and road vehicles. Tap Start Trip, and it records where you went, how far, how long and how fast. Fill up, log the fuel, and see what each nautical mile or kilometre is costing you.
+
+Everything is stored on your phone. No account, no ads, no analytics.
+
+TRACK YOUR TRIPS
+• Records distance, duration, average speed and top speed for every trip
+• Average speed counts only the time you were actually moving, so idling at the dock or drifting at anchor doesn't drag it down
+• Draws the route you took on a map
+• Names the start and end automatically, from towns and bays to offshore platforms
+• Add notes or the reason for each trip, and edit them later
+• Open any trip's route in Google Maps
+
+AUTOMATIC START AND STOP
+• Optional: start and stop trips automatically when your phone connects to or disconnects from a car audio or hands-free Bluetooth device
+• A notification shows while a trip is being recorded
+
+FUEL AND ENGINE HOURS
+• Log each fuel-up with date, litres and price per litre
+• See total travel distance and total engine run time
+• See engine run time and distance since your last refuel
+• Get your average fuel economy in litres per nautical mile or per kilometre
+• Each fuel-up records the distance, average speed and top speed on the tank you just replaced
+
+YOUR UNITS
+• Distance in kilometres or nautical miles
+• Speed in km/h or knots
+
+EXPORT AND BACKUP
+• Export your trips and fuel logs as CSV or PDF and share them with any app
+• Back up your trips to a file and restore them later, saved wherever you choose
+
+MAKE IT YOURS
+• Pick a dashboard background image, such as a favourite chart
+• Choose from more than 40 fonts, plus text colour and size
+• Keep the screen on while you're underway
+• Choose between two launcher icons
+
+PRIVACY
+NaviPulse has no ads, no analytics, no crash reporting and no sign-up. Your trips, fuel logs and settings stay on your device. Place names are looked up from the coordinates of a point using the Android geocoder, OpenStreetMap and MarineRegions, and maps come from Google Maps. Nothing else leaves your phone. Location is used only while a trip is being recorded.
+
+Questions or suggestions? Email kayl.hosken@gmail.com.
