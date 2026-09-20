@@ -152,6 +152,7 @@ class SettingsRepository(private val context: Context) {
         val APP_TITLE_TEXT_SIZE = stringPreferencesKey("app_title_text_size")
         val APP_SUMMARY_TEXT_SIZE = stringPreferencesKey("app_summary_text_size")
         val TIME_ZONE_ID = stringPreferencesKey("time_zone_id")
+        val LAST_BACKUP_URI = stringPreferencesKey("last_backup_uri")
     }
 
     val screenOnEnabled: Flow<Boolean> = context.settingsDataStore.data
@@ -188,6 +189,10 @@ class SettingsRepository(private val context: Context) {
     /** IANA time zone ID used to display dates/times, e.g. "Australia/Sydney". */
     val timeZoneId: Flow<String> = context.settingsDataStore.data
         .map { it[Keys.TIME_ZONE_ID] ?: TimeZone.getDefault().id }
+
+    /** Document Uri of the backup file last saved, used to reopen the file pickers in the same folder. */
+    val lastBackupUri: Flow<String?> = context.settingsDataStore.data
+        .map { it[Keys.LAST_BACKUP_URI] }
 
     suspend fun setScreenOnEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { it[Keys.SCREEN_ON] = enabled }
@@ -229,6 +234,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setTimeZoneId(id: String) {
         context.settingsDataStore.edit { it[Keys.TIME_ZONE_ID] = id }
+    }
+
+    suspend fun setLastBackupUri(uri: String) {
+        context.settingsDataStore.edit { it[Keys.LAST_BACKUP_URI] = uri }
     }
 
     private inline fun <reified T : Enum<T>> Preferences.toEnum(

@@ -1,6 +1,11 @@
 package com.k.hosken.navipulse.ui
 
+import android.content.Context
+import android.content.Intent
 import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Build
+import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,10 +48,40 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import com.k.hosken.navipulse.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+/** "Save backup" picker that opens in the folder the last backup was saved to, when known. */
+private class CreateBackupDocument(private val initialFolder: () -> Uri?) :
+    ActivityResultContracts.CreateDocument("application/json") {
+    override fun createIntent(context: Context, input: String): Intent =
+        super.createIntent(context, input).withInitialFolder(initialFolder())
+}
+
+/** "Restore backup" picker that opens in the folder the last backup was saved to, when known. */
+private class OpenBackupDocument(private val initialFolder: () -> Uri?) :
+    ActivityResultContracts.OpenDocument() {
+    override fun createIntent(context: Context, input: Array<String>): Intent =
+        super.createIntent(context, input).withInitialFolder(initialFolder())
+}
+
+private fun Intent.withInitialFolder(folder: Uri?): Intent {
+    // EXTRA_INITIAL_URI only exists from API 26; on older devices the picker just opens where it likes.
+    if (folder != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        putExtra(DocumentsContract.EXTRA_INITIAL_URI, folder)
+    }
+    return this
+}
+
+/** The folder holding a saved backup file, or the file itself when its provider doesn't use path-style ids. */
+private fun backupFolderOf(savedFile: Uri): Uri = runCatching {
+    val documentId = DocumentsContract.getDocumentId(savedFile)
+    val slash = documentId.lastIndexOf('/')
+    if (slash > 0) DocumentsContract.buildDocumentUri(savedFile.authority, documentId.substring(0, slash)) else savedFile
+}.getOrDefault(savedFile)
 
 /** Lets the user pick between exporting a JSON backup and restoring one, in place of the two
  * separate Settings rows this used to be. */
@@ -56,9 +92,11 @@ fun BackupScreen(
 ) {
     val context = LocalContext.current
     val backgroundImagePath by viewModel.backgroundImagePath.collectAsState()
+    val lastBackupUri by viewModel.lastBackupUri.collectAsState()
+    val initialFolder by rememberUpdatedState(lastBackupUri?.let { backupFolderOf(it.toUri()) })
 
     val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
+        contract = remember { CreateBackupDocument { initialFolder } }
     ) { uri ->
         if (uri != null) {
             viewModel.exportBackup(uri) { result ->
@@ -72,7 +110,7 @@ fun BackupScreen(
     }
 
     val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
+        contract = remember { OpenBackupDocument { initialFolder } }
     ) { uri ->
         if (uri != null) {
             viewModel.importBackup(uri) { result ->

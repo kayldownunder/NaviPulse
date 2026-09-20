@@ -57,6 +57,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val timeZoneId: StateFlow<String> = repository.timeZoneId
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), java.util.TimeZone.getDefault().id)
 
+    val lastBackupUri: StateFlow<String?> = repository.lastBackupUri
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     fun setScreenOnEnabled(enabled: Boolean) {
         viewModelScope.launch { repository.setScreenOnEnabled(enabled) }
     }
@@ -121,6 +124,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 withContext(Dispatchers.IO) {
                     BackupManager.exportBackup(getApplication(), uri, trips)
                 }
+                repository.setLastBackupUri(uri.toString())
                 trips.size
             }
             onResult(result)
