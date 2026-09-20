@@ -1228,7 +1228,7 @@ fun TripItem(
                 horizontalAlignment = Alignment.End,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 84.dp, end = 4.dp)
+                    .padding(top = 56.dp, end = 4.dp)
             ) {
                 Text(
                     text = "Top Speed",

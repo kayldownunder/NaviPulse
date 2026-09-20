@@ -121,8 +121,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val result = runCatching {
                 val trips = db.tripDao().getAllTrips().first()
+                val fuelLogs = db.fuelDao().getAllFuelLogs().first()
                 withContext(Dispatchers.IO) {
-                    BackupManager.exportBackup(getApplication(), uri, trips)
+                    BackupManager.exportBackup(getApplication(), uri, trips, fuelLogs)
                 }
                 repository.setLastBackupUri(uri.toString())
                 trips.size
@@ -134,11 +135,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun importBackup(uri: Uri, onResult: (Result<Int>) -> Unit) {
         viewModelScope.launch {
             val result = runCatching {
-                val trips = withContext(Dispatchers.IO) {
+                val backupData = withContext(Dispatchers.IO) {
                     BackupManager.importBackup(getApplication(), uri)
                 }
-                trips.forEach { db.tripDao().insertTrip(it) }
-                trips.size
+                backupData.trips.forEach { db.tripDao().insertTrip(it) }
+                backupData.fuelLogs.forEach { db.fuelDao().insertFuelLog(it) }
+                backupData.trips.size
             }
             onResult(result)
         }

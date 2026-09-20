@@ -2,20 +2,21 @@ package com.k.hosken.navipulse.util
 
 import android.content.Context
 import android.net.Uri
+import com.k.hosken.navipulse.data.FuelLog
 import com.k.hosken.navipulse.data.TripLog
 import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Exports/imports the full trip history as a JSON file the user picks via the system file
+ * Exports/imports the full trip and fuel log history as a JSON file the user picks via the system file
  * picker (Storage Access Framework), so it can be saved anywhere - Google Drive, local
  * storage, etc. - and restored later on a new or reset device.
  */
 object BackupManager {
 
-    private const val BACKUP_VERSION = 1
+    private const val BACKUP_VERSION = 2
 
-    fun exportBackup(context: Context, uri: Uri, trips: List<TripLog>) {
+    fun exportBackup(context: Context, uri: Uri, trips: List<TripLog>, fuelLogs: List<FuelLog> = emptyList()) {
         val tripsArray = JSONArray()
         for (trip in trips) {
             tripsArray.put(
@@ -34,9 +35,27 @@ object BackupManager {
                 }
             )
         }
+
+        val fuelLogsArray = JSONArray()
+        for (fuelLog in fuelLogs) {
+            fuelLogsArray.put(
+                JSONObject().apply {
+                    put("dateRefuelled", fuelLog.dateRefuelled)
+                    put("litres", fuelLog.litres)
+                    put("pricePerLitre", fuelLog.pricePerLitre)
+                    put("totalPrice", fuelLog.totalPrice)
+                    put("distanceKmSinceLastFuelUp", fuelLog.distanceKmSinceLastFuelUp)
+                    put("avgSpeedKmhSinceLastFuelUp", fuelLog.avgSpeedKmhSinceLastFuelUp)
+                    put("maxSpeedKmhSinceLastFuelUp", fuelLog.maxSpeedKmhSinceLastFuelUp)
+                    put("createdAt", fuelLog.createdAt)
+                }
+            )
+        }
+
         val root = JSONObject().apply {
             put("version", BACKUP_VERSION)
             put("trips", tripsArray)
+            put("fuelLogs", fuelLogsArray)
         }
 
         context.contentResolver.openOutputStream(uri)?.use { out ->
@@ -44,15 +63,18 @@ object BackupManager {
         } ?: throw IllegalStateException("Could not open the selected file for writing")
     }
 
-    /** Returns the trips found in the backup file, each with id=0 so Room assigns fresh ids on insert. */
-    fun importBackup(context: Context, uri: Uri): List<TripLog> {
+    /** Returns the trips and fuel logs found in the backup file, each with id=0 so Room assigns fresh ids on insert. */
+    data class BackupData(val trips: List<TripLog>, val fuelLogs: List<FuelLog>)
+
+    fun importBackup(context: Context, uri: Uri): BackupData {
         val body = context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
             ?: throw IllegalStateException("Could not open the selected file for reading")
 
         val root = JSONObject(body)
-        val tripsArray = root.getJSONArray("trips")
+        val version = root.optInt("version", 1)
 
-        return buildList {
+        val trips = buildList {
+            val tripsArray = root.getJSONArray("trips")
             for (i in 0 until tripsArray.length()) {
                 val obj = tripsArray.getJSONObject(i)
                 add(
@@ -73,5 +95,29 @@ object BackupManager {
                 )
             }
         }
+
+        val fuelLogs = buildList {
+            if (version >= 2 && root.has("fuelLogs")) {
+                val fuelLogsArray = root.getJSONArray("fuelLogs")
+                for (i in 0 until fuelLogsArray.length()) {
+                    val obj = fuelLogsArray.getJSONObject(i)
+                    add(
+                        FuelLog(
+                            id = 0,
+                            dateRefuelled = obj.getLong("dateRefuelled"),
+                            litres = obj.getDouble("litres"),
+                            pricePerLitre = obj.getDouble("pricePerLitre"),
+                            totalPrice = obj.getDouble("totalPrice"),
+                            distanceKmSinceLastFuelUp = obj.optDouble("distanceKmSinceLastFuelUp", 0.0),
+                            avgSpeedKmhSinceLastFuelUp = obj.optDouble("avgSpeedKmhSinceLastFuelUp", 0.0),
+                            maxSpeedKmhSinceLastFuelUp = obj.optDouble("maxSpeedKmhSinceLastFuelUp", 0.0),
+                            createdAt = obj.optLong("createdAt", 0L)
+                        )
+                    )
+                }
+            }
+        }
+
+        return BackupData(trips, fuelLogs)
     }
 }
